@@ -137,8 +137,13 @@ To securely deliver the merchant's configuration to the storefront, the app uses
 ### 3. Theme App Extension
 The physical floating button is rendered on the live storefront using a **Theme App Extension** (`extensions/contact-float-theme`).
 - **`whatsapp_float.liquid`**: An App Embed Block that merchants can toggle ON/OFF in their Theme Editor without touching any code.
-- **`whatsapp-float.js`**: Fetches the configuration from the App Proxy (`/apps/contact-float`) and dynamically injects the WhatsApp icon, text, and styles directly into the DOM based on the merchant's saved settings.
-- **`whatsapp-float.css`**: Provides the keyframe animations (pulse, bounce) to make the button interactive.
+- **`whatsapp-float.js`**: Fetches the configuration from the App Proxy (`/apps/contact-float`) and dynamically injects the WhatsApp icon, text, and styles directly into the DOM based on the merchant's saved settings. It also evaluates robust **Page Visibility Rules** and **Device Visibility Rules**, reading `window.location.pathname` to ensure the widget only renders exactly when and where the merchant requested (e.g., hiding on the Cart or displaying exclusively on Mobile).
+- **`whatsapp-float.css`**: Provides the keyframe animations (pulse, bounce) to make the button interactive and handles media queries for device-specific visibility (e.g. `display: none` on mobile).
+
+### 4. GraphQL Admin API
+To provide a premium user experience in the configuration dashboard, the app communicates with the **Shopify GraphQL Admin API**.
+- When the configuration page (`_app.whatsapp.tsx`) loads, the Loader function executes a GraphQL query to fetch all the merchant's Custom Pages (e.g., "About Us", "Contact"). 
+- These pages are presented dynamically as a checklist in the Advanced Settings, allowing the merchant to easily select specific pages to show or hide the widget on without manually typing URLs.
 
 ---
 

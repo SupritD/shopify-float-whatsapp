@@ -52,7 +52,7 @@ When the merchant fills out the form on the configuration page (`_app.whatsapp.t
 The Action function takes that data and uses **Prisma** to save it securely into the `dev.sqlite` database. It attaches the settings to the merchant's unique `shop` name (like `mystore.myshopify.com`) so we know exactly who the settings belong to.
 
 **Step 3: Recalling the Data on the Dashboard**
-When the merchant reloads the dashboard page, a **Loader function** asks the database for their saved settings and fills out the form automatically so they don't have to start from scratch.
+When the merchant reloads the dashboard page, a **Loader function** asks the database for their saved settings. Additionally, it uses the **Shopify GraphQL Admin API** to dynamically fetch all Custom Pages from their store (like "About Us") so they can be shown in the Page Visibility settings. The form is then filled out automatically.
 
 **Step 4: Displaying on the Live Website (The API)**
 When a shopper visits the live website, the `whatsapp-float.js` script runs. It sends a request to Shopify asking for the settings. Shopify forwards this request securely (using the App Proxy) to our `api.whatsapp.ts` file. 

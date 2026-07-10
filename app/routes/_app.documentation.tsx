@@ -128,7 +128,7 @@ export default function Documentation() {
 
                 <Divider />
 
-                <Text as="h3" variant="headingMd">Position & Visibility</Text>
+                <Text as="h3" variant="headingMd">Position & Size</Text>
 
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">Position Horizontal / Vertical</Text>
@@ -140,9 +140,23 @@ export default function Documentation() {
                   <Text as="p" variant="bodyMd">Adjust the exact distance in pixels from the edge of the screen. Default is 20px.</Text>
                 </BlockStack>
 
+                <Divider />
+
+                <Text as="h3" variant="headingMd">Advanced Settings</Text>
+
+                <BlockStack gap="200">
+                  <Text as="h4" variant="headingSm">Device Visibility</Text>
+                  <Text as="p" variant="bodyMd">Choose whether the button shows on all devices, Desktop only, or Mobile only.</Text>
+                </BlockStack>
+
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">Display Delay</Text>
                   <Text as="p" variant="bodyMd">The time delay (in seconds) before the button appears after the page loads. Default is 0.</Text>
+                </BlockStack>
+                
+                <BlockStack gap="200">
+                  <Text as="h4" variant="headingSm">Page Visibility Rules</Text>
+                  <Text as="p" variant="bodyMd">Control exactly which pages the button appears on. You can choose to show it on all pages, only on specific pages, or hide it on specific pages. When you select a rule, you can check off standard pages (like Cart or Products) and even select from your store's custom pages.</Text>
                 </BlockStack>
 
               </BlockStack>

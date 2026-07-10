@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLoaderData, useSubmit, useActionData, useNavigation } from "react-router";
-import type { LoaderFunctionArgs, ActionFunctionArgs } from "@shopify/shopify-app-react-router/server";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import {
@@ -119,7 +119,7 @@ export default function WhatsAppConfig() {
 
   const isSaving = navigation.state === "submitting";
 
-  const initialConfig = initialData.config;
+  const initialConfig = initialData.config as any;
   const customPages = initialData.customPages || [];
 
   // State for all settings
@@ -159,7 +159,7 @@ export default function WhatsAppConfig() {
 
   useEffect(() => {
     if (actionData?.success) {
-      shopify.toast.show("Settings saved successfully!");
+      (window as any).shopify.toast.show("Settings saved successfully!");
     }
   }, [actionData]);
 
@@ -221,6 +221,7 @@ export default function WhatsAppConfig() {
                       active={popoverActive}
                       activator={
                         <Button onClick={() => setPopoverActive(!popoverActive)} disclosure>
+                          {/* @ts-ignore */}
                           <span className={`fi fi-${selectedCountryIso.toLowerCase()}`} style={{ fontSize: '18px', width: '24px' }}></span>
                         </Button>
                       }
@@ -233,6 +234,7 @@ export default function WhatsAppConfig() {
                             actionRole="menuitem"
                             items={countryData.map((country: any) => ({
                               content: `${country.countryNameEn} +${country.countryCallingCode}`,
+                              // @ts-ignore
                               prefix: <span className={`fi fi-${country.countryCode.toLowerCase()}`} style={{ fontSize: '16px' }}></span>,
                               onAction: () => {
                                 setSelectedCountryIso(country.countryCode);
@@ -544,10 +546,10 @@ export default function WhatsAppConfig() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Preview</Text>
 
-                <Box background="bg-surface-secondary" padding="800" borderRadius="200" minHeight="400px" position="relative" overflowX="hidden" overflowY="hidden">
-                  <Box background="bg-surface-tertiary" minHeight="12px" width="60%" borderRadius="100" marginBlockEnd="200" />
-                  <Box background="bg-surface-tertiary" minHeight="12px" width="80%" borderRadius="100" marginBlockEnd="200" />
-                  <Box background="bg-surface-tertiary" minHeight="12px" width="50%" borderRadius="100" marginBlockEnd="200" />
+                <div style={{ backgroundColor: 'var(--p-color-bg-surface-secondary)', padding: 'var(--p-space-800)', minHeight: '400px', position: 'relative', overflowX: 'hidden', overflowY: 'hidden', borderRadius: 'var(--p-border-radius-200)' }}>
+                  <div style={{ backgroundColor: 'var(--p-color-bg-surface-tertiary)', minHeight: '12px', width: '60%', borderRadius: 'var(--p-border-radius-100)', marginBottom: 'var(--p-space-200)' }} />
+                  <div style={{ backgroundColor: 'var(--p-color-bg-surface-tertiary)', minHeight: '12px', width: '80%', borderRadius: 'var(--p-border-radius-100)', marginBottom: 'var(--p-space-200)' }} />
+                  <div style={{ backgroundColor: 'var(--p-color-bg-surface-tertiary)', minHeight: '12px', width: '50%', borderRadius: 'var(--p-border-radius-100)', marginBottom: 'var(--p-space-200)' }} />
 
                   {/* The Floating Button */}
                   {(() => {
@@ -584,7 +586,7 @@ export default function WhatsAppConfig() {
                       </div>
                     );
                   })()}
-                </Box>
+                </div>
                 <Text as="p" tone="subdued" alignment="center">Preview updates in real-time as you configure</Text>
               </BlockStack>
             </Card>

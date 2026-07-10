@@ -4,6 +4,7 @@ Contact Float is a modern, lightweight Shopify App that allows merchants to easi
 
 ## 🚀 Features
 * **Customizable Floating Button:** Merchants can adjust colors, position, sizes, and animations directly from the Shopify Admin.
+* **Advanced Visibility Controls:** Includes Device Visibility (Desktop/Mobile), Display Delays, and powerful Page Visibility Rules to show/hide the button on specific pages (including Custom Pages).
 * **Theme App Extension:** Injects cleanly into any Online Store 2.0 theme without editing Liquid files.
 * **App Proxy API:** Securely fetches merchant configurations on the storefront without exposing API keys.
 * **Modern Dashboard:** Built using Shopify's Polaris design system for a native admin feel.

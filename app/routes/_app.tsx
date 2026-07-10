@@ -21,9 +21,13 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={enTranslations}>
+        {/* @ts-ignore */}
         <s-app-nav>
+          {/* @ts-ignore */}
           <s-link href="/whatsapp">WhatsApp Button</s-link>
+          {/* @ts-ignore */}
           <s-link href="/documentation">Documentation</s-link>
+        {/* @ts-ignore */}
         </s-app-nav>
         <Outlet />
       </PolarisAppProvider>
