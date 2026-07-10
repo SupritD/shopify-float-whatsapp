@@ -16,12 +16,16 @@ import {
 import { ExternalIcon, ChatIcon } from "@shopify/polaris-icons";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  await authenticate.admin(request);
-  return { isAppEmbedEnabled: false };
+  const { session } = await authenticate.admin(request);
+  return { 
+    isAppEmbedEnabled: false,
+    shop: session.shop,
+    apiKey: process.env.SHOPIFY_API_KEY || ""
+  };
 };
 
 export default function Index() {
-  const { isAppEmbedEnabled } = useLoaderData<typeof loader>();
+  const { isAppEmbedEnabled, shop, apiKey } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
   return (
@@ -38,7 +42,7 @@ export default function Index() {
                   To make the WhatsApp button visible on your store, enable the app embed in your theme settings.
                 </Text>
                 <Box paddingBlockStart="200">
-                  <Button onClick={() => {}} icon={ExternalIcon}>
+                  <Button url={`https://${shop}/admin/themes/current/editor?context=apps&activateAppId=${apiKey}/whatsapp_float`} target="_blank" icon={ExternalIcon}>
                     Enable in Theme Editor
                   </Button>
                 </Box>
@@ -130,7 +134,7 @@ export default function Index() {
                     Having trouble with setup or configuration? Our support team is ready to help.
                     </Text>
                     <InlineStack>
-                    <Button variant="plain">Email support</Button>
+                    <Button variant="plain" url="mailto:info@infinityplus1.in">Email support</Button>
                     </InlineStack>
                 </BlockStack>
                 </Card>
