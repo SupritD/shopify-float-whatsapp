@@ -103,7 +103,7 @@ export default function Index() {
                 </Box>
 
                 <InlineStack gap="300">
-                  <Button variant="primary" onClick={() => navigate('/app/whatsapp')}>
+                  <Button variant="primary" onClick={() => navigate('/whatsapp')}>
                     Configure Button
                   </Button>
                   {/* <Button>Upgrade Plan</Button> */}
@@ -119,7 +119,7 @@ export default function Index() {
                     Add your WhatsApp number, customize appearance, and position your button — all in one place.
                     </Text>
                     <InlineStack>
-                    <Button variant="plain" onClick={() => navigate('/app/whatsapp')}>Configure now</Button>
+                    <Button variant="plain" onClick={() => navigate('/whatsapp')}>Configure now</Button>
                     </InlineStack>
                 </BlockStack>
                 </Card>
@@ -164,7 +164,7 @@ export default function Index() {
               </Box>
               
               <InlineStack align="center">
-                <Button variant="plain" onClick={() => navigate('/app/whatsapp')}>Customize this button</Button>
+                <Button variant="plain" onClick={() => navigate('/whatsapp')}>Customize this button</Button>
               </InlineStack>
             </BlockStack>
           </Card>

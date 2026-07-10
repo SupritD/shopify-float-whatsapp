@@ -22,8 +22,7 @@ export default function App() {
     <AppProvider embedded apiKey={apiKey}>
       <PolarisAppProvider i18n={enTranslations}>
         <s-app-nav>
-          <s-link href="/app">Home</s-link>
-          <s-link href="/app/whatsapp">WhatsApp Button</s-link>
+          <s-link href="/whatsapp">WhatsApp Button</s-link>
         </s-app-nav>
         <Outlet />
       </PolarisAppProvider>

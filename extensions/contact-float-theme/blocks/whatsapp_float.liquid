@@ -1,0 +1,11 @@
+{% schema %}
+{
+  "name": "WhatsApp Float",
+  "target": "body",
+  "stylesheet": "whatsapp-float.css",
+  "javascript": "whatsapp-float.js",
+  "settings": []
+}
+{% endschema %}
+
+<div id="contact-float-root" data-shop-domain="{{ shop.permanent_domain | default: shop.domain }}"></div>

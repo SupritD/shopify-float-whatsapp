@@ -1,4 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLoaderData, useSubmit, useActionData, useNavigation } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "@shopify/shopify-app-react-router/server";
+import { authenticate } from "../shopify.server";
+import prisma from "../db.server";
 import {
   Page,
   Layout,
@@ -32,43 +36,122 @@ const countryDataMap = countryData.reduce((acc: any, curr: any) => {
   return acc;
 }, {});
 
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { session } = await authenticate.admin(request);
+  const config = await prisma.whatsAppConfig.findUnique({
+    where: { shop: session.shop },
+  });
+  return config || {};
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  
+  const data = {
+    selectedCountryIso: String(formData.get("selectedCountryIso")),
+    phoneNumber: String(formData.get("phoneNumber")),
+    message: String(formData.get("message")),
+    displayStyle: String(formData.get("displayStyle")),
+    buttonText: String(formData.get("buttonText")),
+    animation: String(formData.get("animation")),
+    useCustomLink: formData.get("useCustomLink") === "true",
+    customUrl: String(formData.get("customUrl")),
+    iconWidth: String(formData.get("iconWidth")),
+    iconHeight: String(formData.get("iconHeight")),
+    transparentBg: formData.get("transparentBg") === "true",
+    bgColor: String(formData.get("bgColor")),
+    textColor: String(formData.get("textColor")),
+    buttonSize: String(formData.get("buttonSize")),
+    horizontalPos: String(formData.get("horizontalPos")),
+    verticalPos: String(formData.get("verticalPos")),
+    rightOffset: Number(formData.get("rightOffset")),
+    bottomOffset: Number(formData.get("bottomOffset")),
+    visibility: String(formData.get("visibility")),
+    displayDelay: String(formData.get("displayDelay")),
+  };
+
+  await prisma.whatsAppConfig.upsert({
+    where: { shop: session.shop },
+    update: data,
+    create: {
+      shop: session.shop,
+      ...data,
+    },
+  });
+
+  return { success: true };
+}
+
 export default function WhatsAppConfig() {
   const navigate = useNavigate();
+  const initialData = useLoaderData<typeof loader>();
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const actionData = useActionData<typeof action>();
+
+  const isSaving = navigation.state === "submitting";
 
   // State for all settings
-  const [selectedCountryIso, setSelectedCountryIso] = useState("US");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [message, setMessage] = useState("");
-  const [displayStyle, setDisplayStyle] = useState("icon_only");
-  const [buttonText, setButtonText] = useState("Chat with us");
-  const [animation, setAnimation] = useState("pulse");
-  const [useCustomLink, setUseCustomLink] = useState(false);
-  const [customUrl, setCustomUrl] = useState("");
+  const [selectedCountryIso, setSelectedCountryIso] = useState(initialData.selectedCountryIso || "US");
+  const [phoneNumber, setPhoneNumber] = useState(initialData.phoneNumber || "");
+  const [message, setMessage] = useState(initialData.message || "");
+  const [displayStyle, setDisplayStyle] = useState(initialData.displayStyle || "icon_only");
+  const [buttonText, setButtonText] = useState(initialData.buttonText || "Chat with us");
+  const [animation, setAnimation] = useState(initialData.animation || "pulse");
+  const [useCustomLink, setUseCustomLink] = useState(initialData.useCustomLink || false);
+  const [customUrl, setCustomUrl] = useState(initialData.customUrl || "");
   const [popoverActive, setPopoverActive] = useState(false);
 
-  const [iconWidth, setIconWidth] = useState("28");
-  const [iconHeight, setIconHeight] = useState("28");
-  const [transparentBg, setTransparentBg] = useState(false);
-  const [bgColor, setBgColor] = useState("#25D366");
-  const [textColor, setTextColor] = useState("#ffffff");
+  const [iconWidth, setIconWidth] = useState(initialData.iconWidth || "28");
+  const [iconHeight, setIconHeight] = useState(initialData.iconHeight || "28");
+  const [transparentBg, setTransparentBg] = useState(initialData.transparentBg || false);
+  const [bgColor, setBgColor] = useState(initialData.bgColor || "#25D366");
+  const [textColor, setTextColor] = useState(initialData.textColor || "#ffffff");
 
-  const [buttonSize, setButtonSize] = useState("medium");
-  const [horizontalPos, setHorizontalPos] = useState("right");
-  const [verticalPos, setVerticalPos] = useState("bottom");
-  const [rightOffset, setRightOffset] = useState(20);
-  const [bottomOffset, setBottomOffset] = useState(20);
-  const [visibility, setVisibility] = useState("always");
-  const [displayDelay, setDisplayDelay] = useState("0");
+  const [buttonSize, setButtonSize] = useState(initialData.buttonSize || "medium");
+  const [horizontalPos, setHorizontalPos] = useState(initialData.horizontalPos || "right");
+  const [verticalPos, setVerticalPos] = useState(initialData.verticalPos || "bottom");
+  const [rightOffset, setRightOffset] = useState(initialData.rightOffset || 20);
+  const [bottomOffset, setBottomOffset] = useState(initialData.bottomOffset || 20);
+  const [visibility, setVisibility] = useState(initialData.visibility || "always");
+  const [displayDelay, setDisplayDelay] = useState(initialData.displayDelay || "0");
+
+  useEffect(() => {
+    if (actionData?.success) {
+      shopify.toast.show("Settings saved successfully!");
+    }
+  }, [actionData]);
 
   const handleSave = () => {
-    // In future: submit to action
-    // shopify.toast.show("Settings saved");
-    navigate("/app");
+    const data = {
+      selectedCountryIso,
+      phoneNumber,
+      message,
+      displayStyle,
+      buttonText,
+      animation,
+      useCustomLink: String(useCustomLink),
+      customUrl,
+      iconWidth,
+      iconHeight,
+      transparentBg: String(transparentBg),
+      bgColor,
+      textColor,
+      buttonSize,
+      horizontalPos,
+      verticalPos,
+      rightOffset: String(rightOffset),
+      bottomOffset: String(bottomOffset),
+      visibility,
+      displayDelay,
+    };
+    submit(data, { method: "post" });
   };
 
   return (
     <Page
-      backAction={{ content: "Home", onAction: () => navigate("/app") }}
+      backAction={{ content: "Home", onAction: () => navigate("/") }}
       title="WhatsApp Chat Button"
       subtitle="Configure your floating WhatsApp button"
     >
@@ -88,7 +171,7 @@ export default function WhatsAppConfig() {
                 <TextField
                   label="WhatsApp Number"
                   value={phoneNumber}
-                  onChange={(val) => setPhoneNumber(val.replace(/[^+\\d\\s-]/g, ''))}
+                  onChange={(val) => setPhoneNumber(val.replace(/[^+\d\s-]/g, ''))}
                   autoComplete="off"
                   helpText="Enter your number with country code"
                   connectedLeft={
@@ -292,6 +375,7 @@ export default function WhatsAppConfig() {
                   output
                   min={0}
                   max={100}
+                  suffix={<Text as="span" variant="bodyMd">{rightOffset}px</Text>}
                 />
 
                 <RangeSlider
@@ -301,6 +385,7 @@ export default function WhatsAppConfig() {
                   output
                   min={0}
                   max={100}
+                  suffix={<Text as="span" variant="bodyMd">{bottomOffset}px</Text>}
                 />
 
                 <Grid>
@@ -339,6 +424,15 @@ export default function WhatsAppConfig() {
               .Polaris-Layout__Section {
                 height: auto !important;
               }
+              @keyframes pulse-animation {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+              }
+              @keyframes bounce-animation {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-10px); }
+              }
             `}</style>
             <Card>
               <BlockStack gap="400">
@@ -350,38 +444,48 @@ export default function WhatsAppConfig() {
                   <Box background="bg-surface-tertiary" minHeight="12px" width="50%" borderRadius="100" marginBlockEnd="200" />
 
                   {/* The Floating Button */}
-                  <div
-                    style={{
-                      position: 'absolute',
-                      [horizontalPos === 'right' ? 'right' : 'left']: `${rightOffset}px`,
-                      [verticalPos === 'bottom' ? 'bottom' : 'top']: `${bottomOffset}px`,
-                      backgroundColor: transparentBg ? 'transparent' : bgColor,
-                      padding: displayStyle === 'icon_text' ? '12px 16px' : '12px',
-                      borderRadius: '50px',
-                      color: textColor,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: transparentBg ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
-                      transition: 'all 0.3s ease',
-                      transform: animation === 'pulse' ? 'scale(1.05)' : 'none',
-                    }}
-                  >
-                    <div style={{ width: `${iconWidth}px`, height: `${iconHeight}px`, fill: textColor }}>
-                      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>
-                    </div>
-                    {displayStyle === 'icon_text' && (
-                      <span style={{ fontSize: '14px', fontWeight: 600 }}>{buttonText}</span>
-                    )}
-                  </div>
+                  {(() => {
+                    const previewScale = buttonSize === 'small' ? 0.8 : buttonSize === 'large' ? 1.2 : 1;
+                    const basePaddingV = 12 * previewScale;
+                    const basePaddingH = (displayStyle === 'icon_text' ? 16 : 12) * previewScale;
+                    const finalIconWidth = Number(iconWidth) * previewScale;
+                    const finalIconHeight = Number(iconHeight) * previewScale;
+                    
+                    return (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          [horizontalPos === 'right' ? 'right' : 'left']: `${rightOffset}px`,
+                          [verticalPos === 'bottom' ? 'bottom' : 'top']: `${bottomOffset}px`,
+                          backgroundColor: transparentBg ? 'transparent' : bgColor,
+                          padding: `${basePaddingV}px ${basePaddingH}px`,
+                          borderRadius: '50px',
+                          color: textColor,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: transparentBg ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
+                          transition: 'all 0.3s ease',
+                          animation: animation === 'pulse' ? 'pulse-animation 2s infinite' : animation === 'bounce' ? 'bounce-animation 2s infinite' : 'none',
+                        }}
+                      >
+                        <div style={{ width: `${finalIconWidth}px`, height: `${finalIconHeight}px`, fill: textColor }}>
+                          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>
+                        </div>
+                        {displayStyle === 'icon_text' && (
+                          <span style={{ fontSize: `${14 * previewScale}px`, fontWeight: 600 }}>{buttonText}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </Box>
                 <Text as="p" tone="subdued" alignment="center">Preview updates in real-time as you configure</Text>
               </BlockStack>
             </Card>
 
             <Box paddingBlockStart="400">
-              <Button size="large" variant="primary" fullWidth onClick={handleSave}>
-                Create WhatsApp Button
+              <Button size="large" variant="primary" fullWidth onClick={handleSave} loading={isSaving}>
+                Save Configuration
               </Button>
             </Box>
           </div>
