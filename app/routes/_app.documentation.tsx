@@ -4,20 +4,20 @@ import { useNavigate } from "react-router";
 export default function Documentation() {
   const navigate = useNavigate();
   return (
-    <Page 
-      title="WhatsApp Button Documentation" 
+    <Page
+      title="WhatsApp Button Documentation"
       backAction={{ content: "Home", onAction: () => navigate("/") }}
     >
       <Layout>
         <Layout.Section>
           <BlockStack gap="500">
-          
+
             {/* Overview */}
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Overview</Text>
                 <Text as="p" variant="bodyMd">
-                  Welcome! This documentation will help you set up and customize the WhatsApp floating button for your Shopify store. 
+                  Welcome! This documentation will help you set up and customize the WhatsApp floating button for your Shopify store.
                   Our app provides an easy way to let your customers reach out to you directly via WhatsApp.
                 </Text>
               </BlockStack>
@@ -28,7 +28,7 @@ export default function Documentation() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Setting Up the WhatsApp Button</Text>
                 <Text as="p" variant="bodyMd">Follow these steps to set up the WhatsApp floating button on your Shopify store.</Text>
-                
+
                 <Box paddingBlockStart="200">
                   <Text as="h3" variant="headingMd">Step 1: Configure the app settings</Text>
                   <List type="number">
@@ -38,7 +38,7 @@ export default function Documentation() {
                     <List.Item>Click <b>Save Configuration</b>.</List.Item>
                   </List>
                 </Box>
-                
+
                 <Box paddingBlockStart="200">
                   <Text as="h3" variant="headingMd">Step 2: Enable the app embed</Text>
                   <List type="number">
@@ -49,7 +49,7 @@ export default function Documentation() {
                     <List.Item>Click <b>Save</b> in the top right corner.</List.Item>
                   </List>
                 </Box>
-                
+
                 <Box paddingBlockStart="200">
                   <Text as="h3" variant="headingMd">Step 3: Test the floating button</Text>
                   <List type="number">
@@ -66,16 +66,16 @@ export default function Documentation() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Configuration Options</Text>
                 <Text as="p" variant="bodyMd">This document explains all the configuration options available for your WhatsApp floating button.</Text>
-                
+
                 <Divider />
-                
+
                 <Text as="h3" variant="headingMd">Basic Settings</Text>
-                
+
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">WhatsApp Number <Badge tone="critical">Required</Badge></Text>
                   <Text as="p" variant="bodyMd">Your WhatsApp phone number including the country code. We provide a country dropdown for easy selection.</Text>
                 </BlockStack>
-                
+
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">Pre-filled Message</Text>
                   <Text as="p" variant="bodyMd">A default message that will appear in the user's text input field when they open the chat. Example: "Hello! I'm interested in your products."</Text>
@@ -96,9 +96,9 @@ export default function Documentation() {
                 </BlockStack>
 
                 <Divider />
-                
+
                 <Text as="h3" variant="headingMd">Appearance</Text>
-                
+
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">Colors</Text>
                   <List>
@@ -116,7 +116,7 @@ export default function Documentation() {
                     <List.Item><b>Large:</b> Larger size, more noticeable.</List.Item>
                   </List>
                 </BlockStack>
-                
+
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">Animation</Text>
                   <List>
@@ -127,9 +127,9 @@ export default function Documentation() {
                 </BlockStack>
 
                 <Divider />
-                
+
                 <Text as="h3" variant="headingMd">Position & Visibility</Text>
-                
+
                 <BlockStack gap="200">
                   <Text as="h4" variant="headingSm">Position Horizontal / Vertical</Text>
                   <Text as="p" variant="bodyMd">Choose which corner of the screen the button anchors to (e.g., Bottom Right, Bottom Left).</Text>
@@ -153,7 +153,7 @@ export default function Documentation() {
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Troubleshooting</Text>
                 <Text as="p" variant="bodyMd">If you're having issues with your WhatsApp floating button, check out these common problems and solutions.</Text>
-                
+
                 <Box paddingBlockStart="200">
                   <Text as="h3" variant="headingMd">Button Not Appearing</Text>
                   <List>
@@ -163,7 +163,7 @@ export default function Documentation() {
                     <List.Item><b>Clear Cache:</b> Sometimes your browser might be showing an old cached version of your store.</List.Item>
                   </List>
                 </Box>
-                
+
                 <Box paddingBlockStart="200">
                   <Text as="h3" variant="headingMd">WhatsApp Not Opening</Text>
                   <List>
@@ -178,7 +178,7 @@ export default function Documentation() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Frequently Asked Questions</Text>
-                
+
                 <BlockStack gap="200">
                   <Text as="h3" variant="headingMd">Does the button slow down my store?</Text>
                   <Text as="p" variant="bodyMd">No, the WhatsApp button is extremely lightweight. It loads asynchronously and doesn't impact your store's core performance metrics.</Text>
@@ -199,6 +199,7 @@ export default function Documentation() {
           </BlockStack>
         </Layout.Section>
       </Layout>
+      <Box paddingBlockEnd="1200" />
     </Page>
   );
 }

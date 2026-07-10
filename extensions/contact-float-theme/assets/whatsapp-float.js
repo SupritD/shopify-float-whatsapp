@@ -12,6 +12,24 @@ document.addEventListener("DOMContentLoaded", async function() {
     const config = await response.json();
     if (!config || config.error) return;
 
+    // Check page visibility rules
+    if (config.pageVisibilityRule && config.pageVisibilityRule !== 'all' && config.targetPages) {
+      try {
+        const targetPages = JSON.parse(config.targetPages);
+        const currentPath = window.location.pathname;
+        
+        const isMatch = targetPages.some(page => {
+          if (page === '/') return currentPath === '/';
+          return currentPath.startsWith(page);
+        });
+
+        if (config.pageVisibilityRule === 'include' && !isMatch) return;
+        if (config.pageVisibilityRule === 'exclude' && isMatch) return;
+      } catch (e) {
+        console.error("Error parsing target pages:", e);
+      }
+    }
+
     // Check visibility / display delay
     setTimeout(() => {
       renderButton(config, root);

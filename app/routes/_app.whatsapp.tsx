@@ -20,6 +20,7 @@ import {
   Popover,
   ActionList,
   Scrollable,
+  ChoiceList,
 } from "@shopify/polaris";
 import { useNavigate } from "react-router";
 import { customArray } from "country-codes-list";
@@ -37,17 +38,41 @@ const countryDataMap = countryData.reduce((acc: any, curr: any) => {
 }, {});
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { session } = await authenticate.admin(request);
+  const { session, admin } = await authenticate.admin(request);
   const config = await prisma.whatsAppConfig.findUnique({
     where: { shop: session.shop },
   });
-  return config || {};
+
+  // Fetch custom pages from Shopify
+  let customPages: { id: string; handle: string; title: string }[] = [];
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query {
+        pages(first: 50) {
+          nodes {
+            id
+            handle
+            title
+          }
+        }
+      }`
+    );
+    const { data } = await response.json();
+    if (data?.pages?.nodes) {
+      customPages = data.pages.nodes;
+    }
+  } catch (error) {
+    console.error("Error fetching custom pages:", error);
+  }
+
+  return { config: config || {}, customPages };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   const { session } = await authenticate.admin(request);
   const formData = await request.formData();
-  
+
   const data = {
     selectedCountryIso: String(formData.get("selectedCountryIso")),
     phoneNumber: String(formData.get("phoneNumber")),
@@ -69,6 +94,8 @@ export async function action({ request }: ActionFunctionArgs) {
     bottomOffset: Number(formData.get("bottomOffset")),
     visibility: String(formData.get("visibility")),
     displayDelay: String(formData.get("displayDelay")),
+    pageVisibilityRule: String(formData.get("pageVisibilityRule") || "all"),
+    targetPages: String(formData.get("targetPages") || "[]"),
   };
 
   await prisma.whatsAppConfig.upsert({
@@ -92,30 +119,43 @@ export default function WhatsAppConfig() {
 
   const isSaving = navigation.state === "submitting";
 
+  const initialConfig = initialData.config;
+  const customPages = initialData.customPages || [];
+
   // State for all settings
-  const [selectedCountryIso, setSelectedCountryIso] = useState(initialData.selectedCountryIso || "US");
-  const [phoneNumber, setPhoneNumber] = useState(initialData.phoneNumber || "");
-  const [message, setMessage] = useState(initialData.message || "");
-  const [displayStyle, setDisplayStyle] = useState(initialData.displayStyle || "icon_only");
-  const [buttonText, setButtonText] = useState(initialData.buttonText || "Chat with us");
-  const [animation, setAnimation] = useState(initialData.animation || "pulse");
-  const [useCustomLink, setUseCustomLink] = useState(initialData.useCustomLink || false);
-  const [customUrl, setCustomUrl] = useState(initialData.customUrl || "");
+  const [selectedCountryIso, setSelectedCountryIso] = useState(initialConfig.selectedCountryIso || "US");
+  const [phoneNumber, setPhoneNumber] = useState(initialConfig.phoneNumber || "");
+  const [message, setMessage] = useState(initialConfig.message || "");
+  const [displayStyle, setDisplayStyle] = useState(initialConfig.displayStyle || "icon_only");
+  const [buttonText, setButtonText] = useState(initialConfig.buttonText || "Chat with us");
+  const [animation, setAnimation] = useState(initialConfig.animation || "pulse");
+  const [useCustomLink, setUseCustomLink] = useState(initialConfig.useCustomLink || false);
+  const [customUrl, setCustomUrl] = useState(initialConfig.customUrl || "");
   const [popoverActive, setPopoverActive] = useState(false);
 
-  const [iconWidth, setIconWidth] = useState(initialData.iconWidth || "28");
-  const [iconHeight, setIconHeight] = useState(initialData.iconHeight || "28");
-  const [transparentBg, setTransparentBg] = useState(initialData.transparentBg || false);
-  const [bgColor, setBgColor] = useState(initialData.bgColor || "#25D366");
-  const [textColor, setTextColor] = useState(initialData.textColor || "#ffffff");
+  const [iconWidth, setIconWidth] = useState(initialConfig.iconWidth || "28");
+  const [iconHeight, setIconHeight] = useState(initialConfig.iconHeight || "28");
+  const [transparentBg, setTransparentBg] = useState(initialConfig.transparentBg || false);
+  const [bgColor, setBgColor] = useState(initialConfig.bgColor || "#25D366");
+  const [textColor, setTextColor] = useState(initialConfig.textColor || "#ffffff");
 
-  const [buttonSize, setButtonSize] = useState(initialData.buttonSize || "medium");
-  const [horizontalPos, setHorizontalPos] = useState(initialData.horizontalPos || "right");
-  const [verticalPos, setVerticalPos] = useState(initialData.verticalPos || "bottom");
-  const [rightOffset, setRightOffset] = useState(initialData.rightOffset || 20);
-  const [bottomOffset, setBottomOffset] = useState(initialData.bottomOffset || 20);
-  const [visibility, setVisibility] = useState(initialData.visibility || "always");
-  const [displayDelay, setDisplayDelay] = useState(initialData.displayDelay || "0");
+  const [buttonSize, setButtonSize] = useState(initialConfig.buttonSize || "medium");
+  const [horizontalPos, setHorizontalPos] = useState(initialConfig.horizontalPos || "right");
+  const [verticalPos, setVerticalPos] = useState(initialConfig.verticalPos || "bottom");
+  const [rightOffset, setRightOffset] = useState(initialConfig.rightOffset || 20);
+  const [bottomOffset, setBottomOffset] = useState(initialConfig.bottomOffset || 20);
+
+  const [visibility, setVisibility] = useState(initialConfig.visibility || "always");
+  const [displayDelay, setDisplayDelay] = useState(initialConfig.displayDelay || "0");
+
+  const [pageVisibilityRule, setPageVisibilityRule] = useState(initialConfig.pageVisibilityRule || "all");
+  const [targetPages, setTargetPages] = useState<string[]>(() => {
+    try {
+      return JSON.parse(initialConfig.targetPages || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     if (actionData?.success) {
@@ -145,6 +185,8 @@ export default function WhatsAppConfig() {
       bottomOffset: String(bottomOffset),
       visibility,
       displayDelay,
+      pageVisibilityRule,
+      targetPages: JSON.stringify(targetPages),
     };
     submit(data, { method: "post" });
   };
@@ -388,10 +430,21 @@ export default function WhatsAppConfig() {
                   suffix={<Text as="span" variant="bodyMd">{bottomOffset}px</Text>}
                 />
 
+
+
+              </BlockStack>
+            </Card>
+
+            {/* Advanced Settings */}
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">4. Advanced Settings</Text>
+                <Text as="p" tone="subdued">Control display delays and page-specific visibility rules.</Text>
+
                 <Grid>
                   <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
                     <Select
-                      label="Visibility"
+                      label="Device Visibility"
                       options={[
                         { label: 'Always visible', value: 'always' },
                         { label: 'Desktop only', value: 'desktop_only' },
@@ -412,6 +465,55 @@ export default function WhatsAppConfig() {
                   </Grid.Cell>
                 </Grid>
 
+                <Select
+                  label="Page Visibility Rules"
+                  options={[
+                    { label: 'Show on all pages', value: 'all' },
+                    { label: 'Show only on specific pages', value: 'include' },
+                    { label: 'Hide on specific pages', value: 'exclude' }
+                  ]}
+                  value={pageVisibilityRule}
+                  onChange={setPageVisibilityRule}
+                />
+
+                {pageVisibilityRule !== 'all' && (
+                  <BlockStack gap="300">
+                    <Text as="h3" variant="headingSm">Select Pages</Text>
+                    <Grid>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <ChoiceList
+                          title="Standard Pages"
+                          choices={[
+                            { label: 'Home Page', value: '/' },
+                            { label: 'Products', value: '/products' },
+                            { label: 'Collections', value: '/collections' },
+                            { label: 'Cart', value: '/cart' },
+                            { label: 'Blogs', value: '/blogs' },
+                          ]}
+                          selected={targetPages}
+                          onChange={setTargetPages}
+                          allowMultiple
+                        />
+                      </Grid.Cell>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        {customPages.length > 0 ? (
+                          <ChoiceList
+                            title="Store Pages"
+                            choices={customPages.map((page: any) => ({
+                              label: page.title,
+                              value: `/pages/${page.handle}`
+                            }))}
+                            selected={targetPages}
+                            onChange={setTargetPages}
+                            allowMultiple
+                          />
+                        ) : (
+                          <Text as="p" tone="subdued">No custom pages found.</Text>
+                        )}
+                      </Grid.Cell>
+                    </Grid>
+                  </BlockStack>
+                )}
               </BlockStack>
             </Card>
           </BlockStack>
@@ -454,7 +556,7 @@ export default function WhatsAppConfig() {
                     const basePaddingH = (displayStyle === 'icon_text' ? 16 : 12) * previewScale;
                     const finalIconWidth = Number(iconWidth) * previewScale;
                     const finalIconHeight = Number(iconHeight) * previewScale;
-                    
+
                     return (
                       <div
                         style={{
@@ -495,6 +597,7 @@ export default function WhatsAppConfig() {
           </div>
         </Layout.Section>
       </Layout>
+      <Box paddingBlockEnd="1200" />
     </Page>
   );
 }
