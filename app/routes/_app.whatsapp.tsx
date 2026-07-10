@@ -392,7 +392,11 @@ export default function WhatsAppConfig() {
                   <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
                     <Select
                       label="Visibility"
-                      options={[{ label: 'Always visible', value: 'always' }]}
+                      options={[
+                        { label: 'Always visible', value: 'always' },
+                        { label: 'Desktop only', value: 'desktop_only' },
+                        { label: 'Mobile only', value: 'mobile_only' }
+                      ]}
                       value={visibility}
                       onChange={setVisibility}
                     />

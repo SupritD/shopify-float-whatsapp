@@ -76,6 +76,13 @@ function renderButton(config, root) {
     btn.classList.add('contact-float-bounce');
   }
 
+  // Visibility class
+  if (config.visibility === 'desktop_only') {
+    btn.classList.add('contact-float-desktop-only');
+  } else if (config.visibility === 'mobile_only') {
+    btn.classList.add('contact-float-mobile-only');
+  }
+
   const finalIconWidth = (parseFloat(config.iconWidth) || 28) * scale;
   const finalIconHeight = (parseFloat(config.iconHeight) || 28) * scale;
 

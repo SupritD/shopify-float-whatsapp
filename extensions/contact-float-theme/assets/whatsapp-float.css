@@ -16,3 +16,15 @@
 .contact-float-bounce {
   animation: contactFloatBounce 2s infinite ease-in-out;
 }
+
+@media (max-width: 767px) {
+  .contact-float-desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .contact-float-mobile-only {
+    display: none !important;
+  }
+}
