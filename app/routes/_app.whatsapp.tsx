@@ -123,7 +123,7 @@ export default function WhatsAppConfig() {
   const customPages = initialData.customPages || [];
 
   // State for all settings
-  const [selectedCountryIso, setSelectedCountryIso] = useState(initialConfig.selectedCountryIso || "US");
+  const [selectedCountryIso, setSelectedCountryIso] = useState(initialConfig.selectedCountryIso || "IN");
   const [phoneNumber, setPhoneNumber] = useState(initialConfig.phoneNumber || "");
   const [message, setMessage] = useState(initialConfig.message || "");
   const [displayStyle, setDisplayStyle] = useState(initialConfig.displayStyle || "icon_only");
