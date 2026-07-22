@@ -37,6 +37,21 @@ const countryDataMap = countryData.reduce((acc: any, curr: any) => {
   return acc;
 }, {});
 
+const getNationalNumber = (rawPhone: string, iso: string) => {
+  if (!rawPhone) return "";
+  let cleaned = rawPhone.trim();
+  const callingCode = countryDataMap[iso]?.countryCallingCode;
+  
+  if (cleaned.startsWith("+")) {
+    if (callingCode && cleaned.startsWith(`+${callingCode}`)) {
+      cleaned = cleaned.substring(`+${callingCode}`.length).trim();
+    } else {
+      cleaned = cleaned.replace(/^\+\d+\s*/, "").trim();
+    }
+  }
+  return cleaned;
+};
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const { session, admin } = await authenticate.admin(request);
   const config = await prisma.whatsAppConfig.findUnique({
@@ -124,7 +139,22 @@ export default function WhatsAppConfig() {
 
   // State for all settings
   const [selectedCountryIso, setSelectedCountryIso] = useState(initialConfig.selectedCountryIso || "IN");
-  const [phoneNumber, setPhoneNumber] = useState(initialConfig.phoneNumber || "");
+  const [phoneNumber, setPhoneNumber] = useState(() =>
+    getNationalNumber(initialConfig.phoneNumber || "", initialConfig.selectedCountryIso || "IN")
+  );
+
+  const handlePhoneChange = (val: string) => {
+    const currentCallingCode = countryDataMap[selectedCountryIso]?.countryCallingCode;
+    let cleaned = val.trim();
+    if (cleaned.startsWith("+")) {
+      if (currentCallingCode && cleaned.startsWith(`+${currentCallingCode}`)) {
+        cleaned = cleaned.substring(`+${currentCallingCode}`.length);
+      } else {
+        cleaned = cleaned.replace(/^\+\d+\s*/, "");
+      }
+    }
+    setPhoneNumber(cleaned.replace(/\D/g, ""));
+  };
   const [message, setMessage] = useState(initialConfig.message || "");
   const [displayStyle, setDisplayStyle] = useState(initialConfig.displayStyle || "icon_only");
   const [buttonText, setButtonText] = useState(initialConfig.buttonText || "Chat with us");
@@ -164,9 +194,13 @@ export default function WhatsAppConfig() {
   }, [actionData]);
 
   const handleSave = () => {
+    const callingCode = countryDataMap[selectedCountryIso]?.countryCallingCode || "91";
+    const cleanNumber = phoneNumber.replace(/\D/g, "");
+    const fullPhoneNumber = cleanNumber ? `+${callingCode}${cleanNumber}` : "";
+
     const data = {
       selectedCountryIso,
-      phoneNumber,
+      phoneNumber: fullPhoneNumber,
       message,
       displayStyle,
       buttonText,
@@ -213,16 +247,22 @@ export default function WhatsAppConfig() {
                 <TextField
                   label="WhatsApp Number"
                   value={phoneNumber}
-                  onChange={(val) => setPhoneNumber(val.replace(/[^+\d\s-]/g, ''))}
+                  onChange={handlePhoneChange}
                   autoComplete="off"
-                  helpText="Enter your number with country code"
+                  placeholder="9870306295"
+                  helpText="Select your country from the dropdown to change country code. Enter phone number without country code."
                   connectedLeft={
                     <Popover
                       active={popoverActive}
                       activator={
                         <Button onClick={() => setPopoverActive(!popoverActive)} disclosure>
                           {/* @ts-ignore */}
-                          <span className={`fi fi-${selectedCountryIso.toLowerCase()}`} style={{ fontSize: '18px', width: '24px' }}></span>
+                          <InlineStack gap="150" blockAlign="center">
+                            <span className={`fi fi-${selectedCountryIso.toLowerCase()}`} style={{ fontSize: '18px', width: '24px', borderRadius: '2px' }}></span>
+                            <Text as="span" variant="bodyMd" fontWeight="semibold">
+                              +{countryDataMap[selectedCountryIso]?.countryCallingCode || "91"}
+                            </Text>
+                          </InlineStack>
                         </Button>
                       }
                       onClose={() => setPopoverActive(false)}
@@ -239,15 +279,6 @@ export default function WhatsAppConfig() {
                               onAction: () => {
                                 setSelectedCountryIso(country.countryCode);
                                 setPopoverActive(false);
-                                const currentPrefix = `+${countryDataMap[selectedCountryIso]?.countryCallingCode} `;
-                                let cleanPhone = phoneNumber.trimStart();
-                                if (cleanPhone.startsWith(currentPrefix)) {
-                                  cleanPhone = cleanPhone.substring(currentPrefix.length);
-                                } else if (cleanPhone.startsWith('+')) {
-                                  // Fallback: strip any leading +digits
-                                  cleanPhone = cleanPhone.replace(/^\\+\\d+\\s*/, '');
-                                }
-                                setPhoneNumber(`+${country.countryCallingCode} ` + cleanPhone);
                               },
                             }))}
                           />
