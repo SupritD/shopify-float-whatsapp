@@ -2,7 +2,7 @@
 
 client_id = "6d19cae242a1f96a5dd056813e05980c"
 name = "ContactFloat"
-application_url = "https://whatsapp-shopify.infinityplus1.in"
+application_url = "https://whatsapp.infinityplus1.in"
 embedded = true
 
 [access_scopes]
@@ -10,7 +10,7 @@ embedded = true
 scopes = "write_products,write_metaobjects,write_metaobject_definitions,read_themes"
 
 [app_proxy]
-url = "https://whatsapp-shopify.infinityplus1.in/api/whatsapp"
+url = "https://whatsapp.infinityplus1.in/api/whatsapp"
 subpath = "contact-float"
 prefix = "apps"
 
@@ -50,7 +50,7 @@ api_version = "2026-10"
   topics = [ "app/scopes_update" ]
 
 [auth]
-redirect_urls = [ "https://whatsapp-shopify.infinityplus1.in/api/auth" ]
+redirect_urls = [ "https://whatsapp.infinityplus1.in/api/auth" ]
 
 [build]
 include_config_on_deploy = true
