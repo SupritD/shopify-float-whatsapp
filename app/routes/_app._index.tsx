@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import * as fs from "fs";
@@ -79,6 +80,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 export default function Index() {
   const { isAppEmbedEnabled, shop, apiKey } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+
+  const [channels, setChannels] = useState([
+    { id: 'whatsapp', name: 'WhatsApp', detail: '+1 (555) 123-4567', icon: '💬', active: true, type: 'whatsapp' },
+    { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: '💬', active: true, type: 'messenger' },
+    { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: '📸', active: false, type: 'instagram' },
+    { id: 'custom1', name: 'Custom Link', detail: 'Help Center', icon: '🔗', active: true, type: 'custom' },
+  ]);
+
+  const addCustomLink = () => {
+    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', detail: 'New Link', icon: '🔗', active: true, type: 'custom' }]);
+  };
+
+  const removeCustomLink = (id: string) => {
+    setChannels(channels.filter(c => c.id !== id));
+  };
 
   return (
     <Page>
@@ -193,6 +209,88 @@ export default function Index() {
                   </BlockStack>
                 </Card>
               </InlineStack>
+
+              {/* New Contact Channels UI */}
+              <Card>
+                <BlockStack gap="400">
+                  <Text as="h2" variant="headingMd">Contact Channels</Text>
+                  <Text as="p" tone="subdued">Manage the communication channels available in your widget. Drag to reorder.</Text>
+                  
+                  <div style={{ border: '1px solid var(--p-color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+                    {channels.map((channel, index) => (
+                      <div key={channel.id} style={{ 
+                        display: 'flex', alignItems: 'center', padding: '16px', 
+                        borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
+                        backgroundColor: 'white' 
+                      }}>
+                        <div style={{ marginRight: '16px', fontSize: '24px', opacity: 0.8 }}>
+                          {channel.icon}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <Text as="p" fontWeight="bold">{channel.name}</Text>
+                          <Text as="p" tone="subdued">{channel.detail}</Text>
+                        </div>
+                        <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
+                          <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                            <input
+                              type="checkbox"
+                              checked={channel.active}
+                              onChange={(e) => {
+                                const newChannels = [...channels];
+                                newChannels[index].active = e.target.checked;
+                                setChannels(newChannels);
+                              }}
+                              style={{ opacity: 0, width: 0, height: 0 }}
+                            />
+                            <span style={{
+                              position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                              backgroundColor: channel.active ? '#008060' : '#ccc',
+                              transition: '.4s', borderRadius: '34px'
+                            }}>
+                              <span style={{
+                                position: 'absolute', content: '""', height: '16px', width: '16px',
+                                left: channel.active ? '20px' : '4px', bottom: '4px',
+                                backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
+                              }} />
+                            </span>
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <Button variant="plain" disabled={!channel.active}>Edit</Button>
+                          {channel.type === 'custom' && (
+                            <Button variant="plain" tone="critical" onClick={() => removeCustomLink(channel.id)}>Remove</Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button variant="primary" onClick={addCustomLink} fullWidth>
+                    + Add New Channel
+                  </Button>
+                </BlockStack>
+              </Card>
+              
+              <Box paddingBlockStart="400">
+                <button 
+                  onClick={() => {}} 
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    backgroundColor: '#1a1a1a',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  Save Configuration
+                </button>
+              </Box>
+
             </BlockStack>
           </Layout.Section>
 

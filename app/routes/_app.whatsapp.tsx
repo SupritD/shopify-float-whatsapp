@@ -41,7 +41,7 @@ const getNationalNumber = (rawPhone: string, iso: string) => {
   if (!rawPhone) return "";
   let cleaned = rawPhone.trim();
   const callingCode = countryDataMap[iso]?.countryCallingCode;
-  
+
   if (cleaned.startsWith("+")) {
     if (callingCode && cleaned.startsWith(`+${callingCode}`)) {
       cleaned = cleaned.substring(`+${callingCode}`.length).trim();
@@ -187,6 +187,17 @@ export default function WhatsAppConfig() {
     }
   });
 
+  const [channels, setChannels] = useState([
+    { id: 'whatsapp', name: 'WhatsApp', detail: '+1 (555) 123-4567', icon: '💬', active: true, type: 'whatsapp' },
+    { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: '💬', active: true, type: 'messenger' },
+    { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: '📸', active: false, type: 'instagram' },
+    { id: 'custom1', name: 'Custom Link', detail: 'Help Center', icon: '🔗', active: true, type: 'custom' },
+  ]);
+
+  const addCustomLink = () => {
+    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', detail: 'New Link', icon: '🔗', active: true, type: 'custom' }]);
+  };
+
   useEffect(() => {
     if (actionData?.success) {
       (window as any).shopify.toast.show("Settings saved successfully!");
@@ -249,7 +260,7 @@ export default function WhatsAppConfig() {
                   value={phoneNumber}
                   onChange={handlePhoneChange}
                   autoComplete="off"
-                  placeholder="9870306295"
+                  placeholder="9812345678"
                   helpText="Select your country from the dropdown to change country code. Enter phone number without country code."
                   connectedLeft={
                     <Popover
@@ -549,6 +560,61 @@ export default function WhatsAppConfig() {
                 )}
               </BlockStack>
             </Card>
+
+            {/* New Contact Channels UI */}
+            <Card>
+              <BlockStack gap="400">
+                <Text as="h2" variant="headingMd">Contact Channels</Text>
+                <Text as="p" tone="subdued">Manage the communication channels available in your widget. Drag to reorder.</Text>
+                
+                <div style={{ border: '1px solid var(--p-color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+                  {channels.map((channel, index) => (
+                    <div key={channel.id} style={{ 
+                      display: 'flex', alignItems: 'center', padding: '16px', 
+                      borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
+                      backgroundColor: 'white' 
+                    }}>
+                      <div style={{ marginRight: '16px', fontSize: '24px', opacity: 0.8 }}>
+                        {channel.icon}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <Text as="p" fontWeight="bold">{channel.name}</Text>
+                        <Text as="p" tone="subdued">{channel.detail}</Text>
+                      </div>
+                      <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '8px' }}>
+                          <input
+                            type="checkbox"
+                            checked={channel.active}
+                            onChange={(e) => {
+                              const newChannels = [...channels];
+                              newChannels[index].active = e.target.checked;
+                              setChannels(newChannels);
+                            }}
+                            style={{ width: '40px', height: '20px', cursor: 'pointer', accentColor: '#008060' }}
+                          />
+                        </label>
+                      </div>
+                      <Button variant="plain">Edit</Button>
+                    </div>
+                  ))}
+                </div>
+
+                <div 
+                  onClick={addCustomLink}
+                  style={{ 
+                    border: '1px dashed var(--p-color-border)', 
+                    borderRadius: '8px', 
+                    padding: '12px', 
+                    textAlign: 'center', 
+                    cursor: 'pointer',
+                    color: 'var(--p-color-text-subdued)'
+                  }}
+                >
+                  <Text as="span">+ Add New Channel</Text>
+                </div>
+              </BlockStack>
+            </Card>
           </BlockStack>
         </Layout.Section>
 
@@ -623,9 +689,25 @@ export default function WhatsAppConfig() {
             </Card>
 
             <Box paddingBlockStart="400">
-              <Button size="large" variant="primary" fullWidth onClick={handleSave} loading={isSaving}>
-                Save Configuration
-              </Button>
+              <button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  backgroundColor: '#1a1a1a',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: isSaving ? 'not-allowed' : 'pointer',
+                  opacity: isSaving ? 0.7 : 1,
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}
+              >
+                {isSaving ? "Saving..." : "Save Configuration"}
+              </button>
             </Box>
           </div>
         </Layout.Section>
