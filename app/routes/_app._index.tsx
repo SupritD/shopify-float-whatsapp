@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate } from "react-router";
 import * as fs from "fs";
@@ -14,6 +14,15 @@ import {
   Badge,
   Box,
   Divider,
+  Tabs,
+  Grid,
+  TextField,
+  Checkbox,
+  Select,
+  RangeSlider,
+  ChoiceList,
+  Modal,
+  FormLayout,
 } from "@shopify/polaris";
 import { ExternalIcon, ChatIcon } from "@shopify/polaris-icons";
 
@@ -82,19 +91,62 @@ export default function Index() {
   const navigate = useNavigate();
 
   const [channels, setChannels] = useState([
-    { id: 'whatsapp', name: 'WhatsApp', detail: '+1 (555) 123-4567', icon: '💬', active: true, type: 'whatsapp' },
-    { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: '💬', active: true, type: 'messenger' },
-    { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: '📸', active: false, type: 'instagram' },
-    { id: 'custom1', name: 'Custom Link', detail: 'Help Center', icon: '🔗', active: true, type: 'custom' },
+    { id: 'whatsapp', name: 'WhatsApp', detail: '+1 (555) 123-4567', prefilledMessage: 'Hello!', icon: '💬', active: true, type: 'whatsapp', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#25D366", textColor: "#ffffff" } },
+    { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: '💬', active: true, type: 'messenger', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#0084ff", textColor: "#ffffff" } },
+    { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: '📸', active: false, type: 'instagram', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#E1306C", textColor: "#ffffff" } },
+    { id: 'custom1', name: 'Custom Link', customName: 'Help Center', detail: 'https://example.com/help', icon: '🔗', active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
   ]);
 
   const addCustomLink = () => {
-    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', detail: 'New Link', icon: '🔗', active: true, type: 'custom' }]);
+    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', customName: 'New Link', detail: 'https://', icon: '🔗', active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } }]);
   };
 
   const removeCustomLink = (id: string) => {
     setChannels(channels.filter(c => c.id !== id));
   };
+
+  const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
+  
+  const updateChannelField = (id: string, field: string, value: string) => {
+    setChannels(channels.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const editingChannel = channels.find(c => c.id === editingChannelId);
+
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+
+  const handleTabChange = useCallback(
+    (selectedTabIndex: number) => setSelectedTabIndex(selectedTabIndex),
+    [],
+  );
+
+  const tabs = [
+    { id: 'quick-setup', content: 'Quick Setup', accessibilityLabel: 'Quick Setup', panelID: 'quick-setup-panel' },
+    { id: 'appearance', content: 'Appearance', accessibilityLabel: 'Appearance', panelID: 'appearance-panel' },
+    { id: 'position-size', content: 'Position & Size', accessibilityLabel: 'Position & Size', panelID: 'position-size-panel' },
+    { id: 'advanced-settings', content: 'Advanced Settings', accessibilityLabel: 'Advanced Settings', panelID: 'advanced-settings-panel' },
+  ];
+
+  const updateChannelAppearance = (id: string, key: string, value: any) => {
+    setChannels(channels.map(c => c.id === id ? { ...c, appearance: { ...c.appearance, [key]: value } } : c));
+  };
+
+  const [selectedAppearanceChannelId, setSelectedAppearanceChannelId] = useState('whatsapp');
+  
+  const selectedChannel = channels.find(c => c.id === selectedAppearanceChannelId) || channels[0];
+  const appearance = selectedChannel.appearance;
+  
+  const [layoutStyle, setLayoutStyle] = useState("stacked");
+  const [buttonSize, setButtonSize] = useState("medium");
+  const [horizontalPos, setHorizontalPos] = useState("right");
+  const [verticalPos, setVerticalPos] = useState("bottom");
+  const [rightOffset, setRightOffset] = useState(20);
+  const [bottomOffset, setBottomOffset] = useState(20);
+  
+  const [visibility, setVisibility] = useState("always");
+  const [displayDelay, setDisplayDelay] = useState("0");
+  const [pageVisibilityRule, setPageVisibilityRule] = useState("all");
+  const [targetPages, setTargetPages] = useState<string[]>([]);
 
   return (
     <Page>
@@ -124,7 +176,13 @@ export default function Index() {
           {/* Left Column */}
           <Layout.Section>
             <BlockStack gap="400">
-              <Card>
+              <Card padding="0">
+                <Tabs tabs={tabs} selected={selectedTabIndex} onSelect={handleTabChange} fitted />
+              </Card>
+
+              {selectedTabIndex === 0 && (
+                <BlockStack gap="400">
+                  <Card>
                 <BlockStack gap="400">
                   <InlineStack align="space-between">
                     <Text as="h2" variant="headingLg">Welcome</Text>
@@ -215,19 +273,21 @@ export default function Index() {
                 <BlockStack gap="400">
                   <Text as="h2" variant="headingMd">Contact Channels</Text>
                   <Text as="p" tone="subdued">Manage the communication channels available in your widget. Drag to reorder.</Text>
-                  
+
                   <div style={{ border: '1px solid var(--p-color-border)', borderRadius: '8px', overflow: 'hidden' }}>
                     {channels.map((channel, index) => (
-                      <div key={channel.id} style={{ 
-                        display: 'flex', alignItems: 'center', padding: '16px', 
+                      <div key={channel.id} style={{
+                        display: 'flex', alignItems: 'center', padding: '16px',
                         borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
-                        backgroundColor: 'white' 
+                        backgroundColor: 'white'
                       }}>
                         <div style={{ marginRight: '16px', fontSize: '24px', opacity: 0.8 }}>
                           {channel.icon}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <Text as="p" fontWeight="bold">{channel.name}</Text>
+                          <Text as="p" fontWeight="bold">
+                            {channel.type === 'custom' && channel.customName ? `Custom Link (${channel.customName})` : channel.name}
+                          </Text>
                           <Text as="p" tone="subdued">{channel.detail}</Text>
                         </div>
                         <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
@@ -256,7 +316,7 @@ export default function Index() {
                           </label>
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <Button variant="plain" disabled={!channel.active}>Edit</Button>
+                          <Button variant="plain" disabled={!channel.active} onClick={() => setEditingChannelId(channel.id)}>Edit</Button>
                           {channel.type === 'custom' && (
                             <Button variant="plain" tone="critical" onClick={() => removeCustomLink(channel.id)}>Remove</Button>
                           )}
@@ -270,10 +330,211 @@ export default function Index() {
                   </Button>
                 </BlockStack>
               </Card>
-              
+              </BlockStack>
+              )}
+
+              {selectedTabIndex === 1 && (
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">Appearance</Text>
+                    <Text as="p" tone="subdued">Choose an icon, customize colors, and adjust the button style.</Text>
+
+                    <Text as="h3" variant="headingSm">Select Channel</Text>
+                    <Select
+                      label="Channel to Customize"
+                      labelHidden
+                      options={channels.map(c => ({ label: c.name, value: c.id }))}
+                      value={selectedAppearanceChannelId}
+                      onChange={setSelectedAppearanceChannelId}
+                    />
+
+                    <Text as="h3" variant="headingSm">Icon Dimensions</Text>
+                    <Grid>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <TextField
+                          label="Icon Width (px)"
+                          type="number"
+                          value={appearance.iconWidth}
+                          onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'iconWidth', v)}
+                          autoComplete="off"
+                        />
+                      </Grid.Cell>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <TextField
+                          label="Icon Height (px)"
+                          type="number"
+                          value={appearance.iconHeight}
+                          onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'iconHeight', v)}
+                          autoComplete="off"
+                        />
+                      </Grid.Cell>
+                    </Grid>
+
+                    <Text as="h3" variant="headingSm">Colors</Text>
+                    <Checkbox
+                      label="Transparent Background"
+                      checked={appearance.transparentBg}
+                      onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'transparentBg', v)}
+                    />
+
+                    <Grid>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <TextField
+                          label="Background Color"
+                          value={appearance.bgColor}
+                          onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'bgColor', v)}
+                          autoComplete="off"
+                          prefix={<div style={{ width: 20, height: 20, backgroundColor: appearance.transparentBg ? 'transparent' : appearance.bgColor, borderRadius: '100%', border: '1px solid #ccc' }} />}
+                        />
+                      </Grid.Cell>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <TextField
+                          label="Text/Icon Color"
+                          value={appearance.textColor}
+                          onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'textColor', v)}
+                          autoComplete="off"
+                          prefix={<div style={{ width: 20, height: 20, backgroundColor: appearance.textColor, borderRadius: '100%', border: '1px solid #ccc' }} />}
+                        />
+                      </Grid.Cell>
+                    </Grid>
+                  </BlockStack>
+                </Card>
+              )}
+
+              {selectedTabIndex === 2 && (
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">Position & Size</Text>
+                    <Text as="p" tone="subdued">Control where the button appears and how large it is.</Text>
+
+                    <Select
+                      label="Layout Style"
+                      options={[{ label: 'Stacked Icons', value: 'stacked' }, { label: 'Expandable Menu', value: 'expandable' }]}
+                      value={layoutStyle}
+                      onChange={setLayoutStyle}
+                      helpText="Choose how multiple channels are displayed on the website."
+                    />
+
+                    <Grid>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <Select
+                          label="Button Size"
+                          options={[{ label: 'Small', value: 'small' }, { label: 'Medium', value: 'medium' }, { label: 'Large', value: 'large' }]}
+                          value={buttonSize}
+                          onChange={setButtonSize}
+                        />
+                      </Grid.Cell>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <Select
+                          label="Horizontal Position"
+                          options={[{ label: 'Left', value: 'left' }, { label: 'Right', value: 'right' }]}
+                          value={horizontalPos}
+                          onChange={setHorizontalPos}
+                        />
+                      </Grid.Cell>
+                    </Grid>
+
+                    <Select
+                      label="Vertical Position"
+                      options={[{ label: 'Top', value: 'top' }, { label: 'Bottom', value: 'bottom' }]}
+                      value={verticalPos}
+                      onChange={setVerticalPos}
+                    />
+
+                    <RangeSlider
+                      label="Right/Left Offset (px)"
+                      value={rightOffset as number}
+                      onChange={(v) => setRightOffset(v as number)}
+                      output
+                      min={0}
+                      max={100}
+                      suffix={<Text as="span" variant="bodyMd">{rightOffset}px</Text>}
+                    />
+
+                    <RangeSlider
+                      label="Bottom/Top Offset (px)"
+                      value={bottomOffset as number}
+                      onChange={(v) => setBottomOffset(v as number)}
+                      output
+                      min={0}
+                      max={100}
+                      suffix={<Text as="span" variant="bodyMd">{bottomOffset}px</Text>}
+                    />
+
+                  </BlockStack>
+                </Card>
+              )}
+
+              {selectedTabIndex === 3 && (
+                <Card>
+                  <BlockStack gap="400">
+                    <Text as="h2" variant="headingMd">Advanced Settings</Text>
+                    <Text as="p" tone="subdued">Control display delays and page-specific visibility rules.</Text>
+
+                    <Grid>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <Select
+                          label="Device Visibility"
+                          options={[
+                            { label: 'Always visible', value: 'always' },
+                            { label: 'Desktop only', value: 'desktop_only' },
+                            { label: 'Mobile only', value: 'mobile_only' }
+                          ]}
+                          value={visibility}
+                          onChange={setVisibility}
+                        />
+                      </Grid.Cell>
+                      <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                        <TextField
+                          label="Display Delay (seconds)"
+                          type="number"
+                          value={displayDelay}
+                          onChange={setDisplayDelay}
+                          autoComplete="off"
+                        />
+                      </Grid.Cell>
+                    </Grid>
+
+                    <Select
+                      label="Page Visibility Rules"
+                      options={[
+                        { label: 'Show on all pages', value: 'all' },
+                        { label: 'Show only on specific pages', value: 'include' },
+                        { label: 'Hide on specific pages', value: 'exclude' }
+                      ]}
+                      value={pageVisibilityRule}
+                      onChange={setPageVisibilityRule}
+                    />
+
+                    {pageVisibilityRule !== 'all' && (
+                      <BlockStack gap="300">
+                        <Text as="h3" variant="headingSm">Select Pages</Text>
+                        <Grid>
+                          <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                            <ChoiceList
+                              title="Standard Pages"
+                              choices={[
+                                { label: 'Home Page', value: '/' },
+                                { label: 'Products', value: '/products' },
+                                { label: 'Collections', value: '/collections' },
+                                { label: 'Cart', value: '/cart' },
+                                { label: 'Blogs', value: '/blogs' },
+                              ]}
+                              selected={targetPages}
+                              onChange={setTargetPages}
+                              allowMultiple
+                            />
+                          </Grid.Cell>
+                        </Grid>
+                      </BlockStack>
+                    )}
+                  </BlockStack>
+                </Card>
+              )}
+
               <Box paddingBlockStart="400">
-                <button 
-                  onClick={() => {}} 
+                <button
+                  onClick={() => { }}
                   style={{
                     width: '100%',
                     padding: '16px',
@@ -327,6 +588,134 @@ export default function Index() {
           </Layout.Section>
         </Layout>
       </BlockStack>
+
+      {editingChannel && (
+        <Modal
+          open={!!editingChannelId}
+          onClose={() => setEditingChannelId(null)}
+          title={`Edit ${editingChannel.type === 'custom' && editingChannel.customName ? `Custom Link (${editingChannel.customName})` : editingChannel.name}`}
+          primaryAction={{
+            content: 'Done',
+            onAction: () => setEditingChannelId(null),
+          }}
+        >
+          <Modal.Section>
+            <FormLayout>
+              {editingChannel.type === 'whatsapp' && (
+                <>
+                  <TextField
+                    label="WhatsApp Number"
+                    value={editingChannel.detail}
+                    onChange={(v) => {
+                      const cleanNumber = v.replace(/\D/g, "");
+                      updateChannelField(editingChannel.id, 'detail', cleanNumber);
+                    }}
+                    autoComplete="off"
+                    placeholder="9812345678"
+                    helpText="Select your country from the dropdown to change country code. Enter phone number without country code."
+                    connectedLeft={
+                      <Popover
+                        active={countryPopoverActive}
+                        activator={
+                          <Button onClick={() => setCountryPopoverActive(!countryPopoverActive)} disclosure>
+                            {/* @ts-ignore */}
+                            <InlineStack gap="150" blockAlign="center">
+                              <span className={`fi fi-${(editingChannel.selectedCountryIso || 'IN').toLowerCase()}`} style={{ fontSize: '18px', width: '24px', borderRadius: '2px' }}></span>
+                              <Text as="span" variant="bodyMd" fontWeight="semibold">
+                                +{countryDataMap[editingChannel.selectedCountryIso || 'IN']?.countryCallingCode || "91"}
+                              </Text>
+                            </InlineStack>
+                          </Button>
+                        }
+                        onClose={() => setCountryPopoverActive(false)}
+                        autofocusTarget="none"
+                      >
+                        <Popover.Pane>
+                          <Scrollable style={{ height: '300px' }}>
+                            <ActionList
+                              actionRole="menuitem"
+                              items={countryData.map((country: any) => ({
+                                content: `${country.countryNameEn} +${country.countryCallingCode}`,
+                                // @ts-ignore
+                                prefix: <span className={`fi fi-${country.countryCode.toLowerCase()}`} style={{ fontSize: '16px' }}></span>,
+                                onAction: () => {
+                                  updateChannelField(editingChannel.id, 'selectedCountryIso', country.countryCode);
+                                  setCountryPopoverActive(false);
+                                },
+                              }))}
+                            />
+                          </Scrollable>
+                        </Popover.Pane>
+                      </Popover>
+                    }
+                  />
+                  <TextField
+                    label="Pre-filled Message"
+                    value={editingChannel.prefilledMessage || ''}
+                    onChange={(v) => updateChannelField(editingChannel.id, 'prefilledMessage', v)}
+                    autoComplete="off"
+                    multiline={3}
+                    helpText="Message that will be pre-filled when the user opens the chat."
+                  />
+                </>
+              )}
+
+              {editingChannel.type === 'messenger' && (
+                <TextField
+                  label="Facebook Page ID or m.me link"
+                  value={editingChannel.detail}
+                  onChange={(v) => updateChannelField(editingChannel.id, 'detail', v)}
+                  autoComplete="off"
+                  helpText="Example: m.me/yourbrand"
+                />
+              )}
+
+              {editingChannel.type === 'instagram' && (
+                <TextField
+                  label="Instagram Username or ig.me link"
+                  value={editingChannel.detail}
+                  onChange={(v) => updateChannelField(editingChannel.id, 'detail', v)}
+                  autoComplete="off"
+                  helpText="Example: ig.me/m/yourbrand"
+                />
+              )}
+
+              {editingChannel.type === 'custom' && (
+                <>
+                  <TextField
+                    label="Name (for your reference only)"
+                    value={editingChannel.customName || ''}
+                    onChange={(v) => updateChannelField(editingChannel.id, 'customName', v)}
+                    autoComplete="off"
+                    helpText="This will show in the dashboard configuration as Custom Link (Name)."
+                  />
+                  <TextField
+                    label="URL"
+                    value={editingChannel.detail}
+                    onChange={(v) => updateChannelField(editingChannel.id, 'detail', v)}
+                    autoComplete="off"
+                    helpText="Enter the full URL, e.g., https://example.com"
+                  />
+                  <Select
+                    label="Icon"
+                    options={[
+                      { label: '🔗 Link', value: '🔗' },
+                      { label: '📞 Phone', value: '📞' },
+                      { label: '📧 Email', value: '📧' },
+                      { label: '📍 Location', value: '📍' },
+                      { label: '🛍️ Shop', value: '🛍️' },
+                      { label: '❓ Help', value: '❓' },
+                      { label: '💬 Chat', value: '💬' }
+                    ]}
+                    value={editingChannel.icon || '🔗'}
+                    onChange={(v) => updateChannelField(editingChannel.id, 'icon', v)}
+                  />
+                </>
+              )}
+            </FormLayout>
+          </Modal.Section>
+        </Modal>
+      )}
     </Page>
   );
 }
