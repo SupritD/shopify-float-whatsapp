@@ -178,6 +178,7 @@ export default function Index() {
   const [displayDelay, setDisplayDelay] = useState("0");
   const [pageVisibilityRule, setPageVisibilityRule] = useState("all");
   const [targetPages, setTargetPages] = useState<string[]>([]);
+  const [isPreviewExpanded, setIsPreviewExpanded] = useState(true);
 
   return (
     <Page>
@@ -448,7 +449,11 @@ export default function Index() {
 
                     <Select
                       label="Layout Style"
-                      options={[{ label: 'Stacked Icons', value: 'stacked' }, { label: 'Expandable Menu', value: 'expandable' }]}
+                      options={[
+                        { label: 'Stacked Icons', value: 'stacked' }, 
+                        { label: 'Expandable Menu', value: 'expandable' },
+                        { label: 'Drawer Menu', value: 'drawer' }
+                      ]}
                       value={layoutStyle}
                       onChange={setLayoutStyle}
                       helpText="Choose how multiple channels are displayed on the website."
@@ -619,7 +624,57 @@ export default function Index() {
                     alignItems: horizontalPos === 'right' ? 'flex-end' : 'flex-start',
                     zIndex: 10
                   }}>
-                    {channels.filter(c => c.active).map((channel) => (
+                    {layoutStyle === 'drawer' && (
+                      <div style={{
+                        backgroundColor: '#ffffff',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        padding: '8px 0',
+                        minWidth: '220px',
+                        marginBottom: '4px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        opacity: isPreviewExpanded ? 1 : 0,
+                        transform: isPreviewExpanded ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.95)',
+                        pointerEvents: isPreviewExpanded ? 'auto' : 'none',
+                        transition: 'opacity 0.3s ease, transform 0.3s ease',
+                        transformOrigin: horizontalPos === 'right' ? 'bottom right' : 'bottom left',
+                      }}>
+                        {channels.filter(c => c.active).map((channel) => (
+                          <div key={channel.id} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '10px 16px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s',
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9f9f9'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{
+                              width: '24px', height: '24px', fill: channel.appearance?.bgColor, color: channel.appearance?.bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                              {channel.icon?.startsWith('<svg') ? (
+                                <div dangerouslySetInnerHTML={{ __html: channel.icon }} style={{ width: '100%', height: '100%', display: 'flex' }} />
+                              ) : channel.icon?.startsWith('http') || channel.icon?.startsWith('data:image') ? (
+                                <img src={channel.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                              ) : (
+                                <span style={{ fontSize: '24px' }}>{channel.icon}</span>
+                              )}
+                            </div>
+                            <span style={{ fontSize: '14px', fontWeight: 500, color: '#333' }}>
+                              {channel.type === 'custom' && channel.customName ? channel.customName : channel.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(layoutStyle === 'stacked' || layoutStyle === 'expandable') && channels.filter(c => c.active).map((channel, index, arr) => {
+                      const isVisible = layoutStyle === 'stacked' || isPreviewExpanded;
+                      return (
                       <div key={channel.id} style={{
                         backgroundColor: channel.appearance?.bgColor || '#000',
                         color: channel.appearance?.textColor || '#fff',
@@ -631,8 +686,10 @@ export default function Index() {
                         justifyContent: 'center',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         cursor: 'pointer',
-                        opacity: channel.appearance?.transparentBg ? 0.8 : 1,
-                        transition: 'transform 0.2s',
+                        opacity: isVisible ? (channel.appearance?.transparentBg ? 0.8 : 1) : 0,
+                        pointerEvents: isVisible ? 'auto' : 'none',
+                        transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.5)',
+                        transition: `all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${layoutStyle === 'expandable' ? (arr.length - index) * 0.05 : 0}s`,
                       }}>
                         <div style={{
                           width: `${channel.appearance?.iconWidth || 28}px`,
@@ -652,7 +709,35 @@ export default function Index() {
                           )}
                         </div>
                       </div>
-                    ))}
+                    )})}
+
+                    {(layoutStyle === 'expandable' || layoutStyle === 'drawer') && (
+                      <div 
+                        onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}
+                        style={{
+                          backgroundColor: '#000',
+                          color: '#fff',
+                          width: buttonSize === 'small' ? '40px' : buttonSize === 'large' ? '64px' : '52px',
+                          height: buttonSize === 'small' ? '40px' : buttonSize === 'large' ? '64px' : '52px',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                          cursor: 'pointer',
+                          transition: 'transform 0.3s ease',
+                          transform: isPreviewExpanded ? 'rotate(135deg)' : 'rotate(0deg)'
+                        }}
+                      >
+                        <div style={{ 
+                          width: buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px', 
+                          height: buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px', 
+                          fill: 'none' 
+                        }}>
+                          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg"><path d="M12 4V20M4 12H20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </Box>
 
