@@ -33,31 +33,17 @@ model Session {
   refreshTokenExpires DateTime?
 }
 
-model WhatsAppConfig {
+model WidgetConfig {
   id                String   @id @default(uuid())
   shop              String   @unique
-  selectedCountryIso String  @default("IN")
-  phoneNumber       String   @default("91")
-  message           String   @default("")
-  displayStyle      String   @default("icon_only")
-  buttonText        String   @default("Chat with us")
-  animation         String   @default("pulse")
-  useCustomLink     Boolean  @default(false)
-  customUrl         String   @default("")
-  iconWidth         String   @default("28")
-  iconHeight        String   @default("28")
-  transparentBg     Boolean  @default(false)
-  bgColor           String   @default("#25D366")
-  textColor         String   @default("#ffffff")
   buttonSize        String   @default("medium")
+  layoutStyle       String   @default("expandable")
   horizontalPos     String   @default("right")
   verticalPos       String   @default("bottom")
   rightOffset       Int      @default(20)
   bottomOffset      Int      @default(20)
   visibility        String   @default("always")
-  displayDelay      String   @default("0")
-  pageVisibilityRule String  @default("all")
-  targetPages       String   @default("")
+  channels          String   @db.LongText @default("[]") 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

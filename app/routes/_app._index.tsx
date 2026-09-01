@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { useLoaderData, useNavigate } from "react-router";
+import { useLoaderData, useNavigate, useSubmit } from "react-router";
 import * as fs from "fs";
+import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
 import {
   Page,
@@ -61,6 +62,7 @@ const countryDataMap = countryData.reduce((acc: any, curr: any) => {
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
 
+
   let isAppEmbedEnabled = false;
 
   try {
@@ -111,11 +113,61 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     console.error("Error checking app embed status:", error);
   }
 
+  let config = await prisma.widgetConfig.findUnique({
+    where: { shop: session.shop }
+  });
+
+  if (!config) {
+    config = await prisma.widgetConfig.create({
+      data: {
+        shop: session.shop,
+        channels: "[]" 
+      }
+    });
+  }
+
+  let parsedChannels = [];
+  try {
+    parsedChannels = JSON.parse(config.channels);
+  } catch(e) {}
+
   return {
     isAppEmbedEnabled,
     shop: session.shop,
-    apiKey: process.env.SHOPIFY_API_KEY || ""
+    apiKey: process.env.SHOPIFY_API_KEY || "",
+    config: {
+      ...config,
+      channels: parsedChannels
+    }
   };
+};
+
+export const action = async ({ request }: any) => {
+  const { session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const payloadStr = formData.get("payload");
+
+  if (payloadStr) {
+    const payload = JSON.parse(payloadStr);
+    
+    await prisma.widgetConfig.update({
+      where: { shop: session.shop },
+      data: {
+        buttonSize: payload.buttonSize,
+        layoutStyle: payload.layoutStyle,
+        horizontalPos: payload.horizontalPos,
+        verticalPos: payload.verticalPos,
+        rightOffset: parseInt(payload.rightOffset, 10),
+        bottomOffset: parseInt(payload.bottomOffset, 10),
+        visibility: payload.visibility,
+        channels: JSON.stringify(payload.channels),
+      }
+    });
+    
+    return { success: true };
+  }
+  
+  return { success: false };
 };
 
 function SortableChannelItem({ channel, index, channels, setChannels, setEditingChannelId, removeCustomLink }: any) {
@@ -196,8 +248,25 @@ function SortableChannelItem({ channel, index, channels, setChannels, setEditing
 }
 
 export default function Index() {
-  const { isAppEmbedEnabled, shop, apiKey } = useLoaderData<typeof loader>();
+  const { isAppEmbedEnabled, shop, apiKey, config } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+  const submit = useSubmit();
+
+  const handleSave = () => {
+    const payload = JSON.stringify({
+      channels,
+      layoutStyle,
+      buttonSize,
+      horizontalPos,
+      verticalPos,
+      rightOffset,
+      bottomOffset,
+      visibility,
+    });
+    const formData = new FormData();
+    formData.append("payload", payload);
+    submit(formData, { method: "post" });
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -206,7 +275,7 @@ export default function Index() {
     })
   );
 
-  const [channels, setChannels] = useState<any[]>([
+  const defaultChannels = [
     { id: 'whatsapp', name: 'WhatsApp', detail: '9812345678', selectedCountryIso: 'IN', prefilledMessage: 'Hello!', icon: DEFAULT_ICONS.whatsapp, useDefaultIcon: true, active: true, type: 'whatsapp', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#25D366", textColor: "#ffffff" } },
     { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: DEFAULT_ICONS.messenger, useDefaultIcon: true, active: true, type: 'messenger', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#0084ff", textColor: "#ffffff" } },
     { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: DEFAULT_ICONS.instagram, useDefaultIcon: true, active: false, type: 'instagram', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#E1306C", textColor: "#ffffff" } },
@@ -216,7 +285,10 @@ export default function Index() {
     { id: 'email', name: 'Email Support', detail: 'support@yourbrand.com', icon: DEFAULT_ICONS.email, useDefaultIcon: true, active: false, type: 'email', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#EA4335", textColor: "#ffffff" } },
     { id: 'wechat', name: 'WeChat', detail: 'your_wechat_id', icon: DEFAULT_ICONS.wechat, useDefaultIcon: true, active: false, type: 'wechat', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#07C160", textColor: "#ffffff" } },
     { id: 'custom1', name: 'Custom Link', customName: 'Help Center', detail: 'https://example.com/help', icon: '🔗', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
-  ]);
+  ];
+
+  const parsedChannels = Array.isArray(config?.channels) && config.channels.length > 0 ? config.channels : defaultChannels;
+  const [channels, setChannels] = useState<any[]>(parsedChannels);
 
   const addCustomLink = () => {
     setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', customName: 'New Link', detail: 'https://', icon: '🔗', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } }]);
@@ -273,14 +345,14 @@ export default function Index() {
   const selectedChannel = channels.find(c => c.id === selectedAppearanceChannelId) || channels[0];
   const appearance = selectedChannel.appearance;
 
-  const [layoutStyle, setLayoutStyle] = useState("stacked");
-  const [buttonSize, setButtonSize] = useState("medium");
-  const [horizontalPos, setHorizontalPos] = useState("right");
-  const [verticalPos, setVerticalPos] = useState("bottom");
-  const [rightOffset, setRightOffset] = useState(20);
-  const [bottomOffset, setBottomOffset] = useState(20);
+  const [layoutStyle, setLayoutStyle] = useState(config?.layoutStyle || "expandable");
+  const [buttonSize, setButtonSize] = useState(config?.buttonSize || "medium");
+  const [horizontalPos, setHorizontalPos] = useState(config?.horizontalPos || "right");
+  const [verticalPos, setVerticalPos] = useState(config?.verticalPos || "bottom");
+  const [rightOffset, setRightOffset] = useState(config?.rightOffset ?? 20);
+  const [bottomOffset, setBottomOffset] = useState(config?.bottomOffset ?? 20);
 
-  const [visibility, setVisibility] = useState("always");
+  const [visibility, setVisibility] = useState(config?.visibility || "always");
   const [displayDelay, setDisplayDelay] = useState("0");
   const [pageVisibilityRule, setPageVisibilityRule] = useState("all");
   const [targetPages, setTargetPages] = useState<string[]>([]);
@@ -645,7 +717,7 @@ export default function Index() {
 
               <Box paddingBlockStart="400">
                 <button
-                  onClick={() => { }}
+                  onClick={handleSave}
                   style={{
                     width: '100%',
                     padding: '16px',

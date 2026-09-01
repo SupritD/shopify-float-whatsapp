@@ -19,7 +19,7 @@ export async function loader({ request }: { request: Request }) {
   }
 
   try {
-    const config = await prisma.whatsAppConfig.findUnique({
+    const config = await prisma.widgetConfig.findUnique({
       where: { shop },
     });
 
@@ -35,7 +35,21 @@ export async function loader({ request }: { request: Request }) {
       });
     }
 
-    return new Response(JSON.stringify(config), {
+    let parsedChannels = [];
+    try {
+      if (config.channels) {
+        parsedChannels = JSON.parse(config.channels);
+      }
+    } catch(e) {
+      console.error("[API_WHATSAPP] Error parsing channels", e);
+    }
+
+    const payload = {
+      ...config,
+      channels: parsedChannels
+    };
+
+    return new Response(JSON.stringify(payload), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

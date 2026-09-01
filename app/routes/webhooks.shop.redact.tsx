@@ -7,7 +7,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   console.log(`Received ${topic} webhook for ${shop}`);
 
-  await db.whatsAppConfig.deleteMany({ where: { shop } });
+  await db.widgetConfig.deleteMany({ where: { shop } });
   await db.session.deleteMany({ where: { shop } });
 
   return new Response();
