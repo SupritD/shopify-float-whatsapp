@@ -23,8 +23,33 @@ import {
   ChoiceList,
   Modal,
   FormLayout,
+  Popover,
+  ActionList,
+  Scrollable,
+  DropZone,
+  Thumbnail,
 } from "@shopify/polaris";
 import { ExternalIcon, ChatIcon } from "@shopify/polaris-icons";
+import { customArray } from "country-codes-list";
+import 'flag-icons/css/flag-icons.min.css';
+
+const countryData = customArray({
+  countryCode: "{countryCode}",
+  countryNameEn: "{countryNameEn}",
+  countryCallingCode: "{countryCallingCode}",
+});
+
+const DEFAULT_ICONS = {
+  whatsapp: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>',
+  messenger: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M12 0C5.373 0 0 4.974 0 11.111c0 3.498 1.744 6.614 4.469 8.654V24l4.088-2.242c1.092.3 2.246.464 3.443.464 6.627 0 12-4.974 12-11.111C24 4.974 18.627 0 12 0zm1.191 14.963l-3.056-3.26-5.963 3.26 6.554-6.962 3.13 3.259 5.887-3.259-6.552 6.962z"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>'
+};
+
+const countryDataMap = countryData.reduce((acc: any, curr: any) => {
+  acc[curr.countryCode] = curr;
+  return acc;
+}, {});
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session, admin } = await authenticate.admin(request);
@@ -90,15 +115,16 @@ export default function Index() {
   const { isAppEmbedEnabled, shop, apiKey } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
-  const [channels, setChannels] = useState([
-    { id: 'whatsapp', name: 'WhatsApp', detail: '+1 (555) 123-4567', prefilledMessage: 'Hello!', icon: '💬', active: true, type: 'whatsapp', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#25D366", textColor: "#ffffff" } },
-    { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: '💬', active: true, type: 'messenger', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#0084ff", textColor: "#ffffff" } },
-    { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: '📸', active: false, type: 'instagram', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#E1306C", textColor: "#ffffff" } },
-    { id: 'custom1', name: 'Custom Link', customName: 'Help Center', detail: 'https://example.com/help', icon: '🔗', active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
+  const [channels, setChannels] = useState<any[]>([
+    { id: 'whatsapp', name: 'WhatsApp', detail: '9812345678', selectedCountryIso: 'IN', prefilledMessage: 'Hello!', icon: DEFAULT_ICONS.whatsapp, useDefaultIcon: true, active: true, type: 'whatsapp', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#25D366", textColor: "#ffffff" } },
+    { id: 'messenger', name: 'Facebook Messenger', detail: 'm.me/yourbrand', icon: DEFAULT_ICONS.messenger, useDefaultIcon: true, active: true, type: 'messenger', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#0084ff", textColor: "#ffffff" } },
+    { id: 'instagram', name: 'Instagram', detail: 'Not configured', icon: DEFAULT_ICONS.instagram, useDefaultIcon: true, active: false, type: 'instagram', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#E1306C", textColor: "#ffffff" } },
+    { id: 'x', name: 'X (Twitter)', detail: 'twitter.com/yourbrand', icon: DEFAULT_ICONS.x, useDefaultIcon: true, active: false, type: 'x', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
+    { id: 'custom1', name: 'Custom Link', customName: 'Help Center', detail: 'https://example.com/help', icon: '🔗', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
   ]);
 
   const addCustomLink = () => {
-    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', customName: 'New Link', detail: 'https://', icon: '🔗', active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } }]);
+    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', customName: 'New Link', detail: 'https://', icon: '🔗', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } }]);
   };
 
   const removeCustomLink = (id: string) => {
@@ -106,9 +132,14 @@ export default function Index() {
   };
 
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
-  
-  const updateChannelField = (id: string, field: string, value: string) => {
+  const [countryPopoverActive, setCountryPopoverActive] = useState(false);
+
+  const updateChannelField = (id: string, field: string, value: any) => {
     setChannels(channels.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const updateChannel = (id: string, updates: any) => {
+    setChannels(channels.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
   const editingChannel = channels.find(c => c.id === editingChannelId);
@@ -132,17 +163,17 @@ export default function Index() {
   };
 
   const [selectedAppearanceChannelId, setSelectedAppearanceChannelId] = useState('whatsapp');
-  
+
   const selectedChannel = channels.find(c => c.id === selectedAppearanceChannelId) || channels[0];
   const appearance = selectedChannel.appearance;
-  
+
   const [layoutStyle, setLayoutStyle] = useState("stacked");
   const [buttonSize, setButtonSize] = useState("medium");
   const [horizontalPos, setHorizontalPos] = useState("right");
   const [verticalPos, setVerticalPos] = useState("bottom");
   const [rightOffset, setRightOffset] = useState(20);
   const [bottomOffset, setBottomOffset] = useState(20);
-  
+
   const [visibility, setVisibility] = useState("always");
   const [displayDelay, setDisplayDelay] = useState("0");
   const [pageVisibilityRule, setPageVisibilityRule] = useState("all");
@@ -182,155 +213,163 @@ export default function Index() {
 
               {selectedTabIndex === 0 && (
                 <BlockStack gap="400">
+                  {/* New Contact Channels UI */}
                   <Card>
-                <BlockStack gap="400">
-                  <InlineStack align="space-between">
-                    <Text as="h2" variant="headingLg">Welcome</Text>
-                    <InlineStack gap="200">
-                      <Badge tone="success">Active</Badge>
-                      {/* <Badge tone="info">Free Plan</Badge> */}
-                    </InlineStack>
-                  </InlineStack>
+                    <BlockStack gap="400">
+                      <Text as="h2" variant="headingMd">Contact Channels</Text>
+                      <Text as="p" tone="subdued">Manage the communication channels available in your widget. Drag to reorder.</Text>
 
-                  <Text as="p" variant="bodyMd" tone="subdued">
-                    Your WhatsApp button is live on your store.
-                  </Text>
+                      <div style={{ border: '1px solid var(--p-color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+                        {channels.map((channel, index) => (
+                          <div key={channel.id} style={{
+                            display: 'flex', alignItems: 'center', padding: '16px',
+                            borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
+                            backgroundColor: 'white'
+                          }}>
+                            <div style={{ marginRight: '16px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}>
+                              {channel.icon?.startsWith('<svg') ? (
+                                <div dangerouslySetInnerHTML={{ __html: channel.icon }} style={{ width: '100%', height: '100%', display: 'flex' }} />
+                              ) : channel.icon?.startsWith('http') || channel.icon?.startsWith('data:image') ? (
+                                <img src={channel.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                              ) : (
+                                <span style={{ fontSize: '24px' }}>{channel.icon}</span>
+                              )}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <Text as="p" fontWeight="bold">
+                                {channel.type === 'custom' && channel.customName ? `Custom Link (${channel.customName})` : channel.name}
+                              </Text>
+                              <Text as="p" tone="subdued">{channel.detail}</Text>
+                            </div>
+                            <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
+                              <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={channel.active}
+                                  onChange={(e) => {
+                                    const newChannels = [...channels];
+                                    newChannels[index].active = e.target.checked;
+                                    setChannels(newChannels);
+                                  }}
+                                  style={{ opacity: 0, width: 0, height: 0 }}
+                                />
+                                <span style={{
+                                  position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                                  backgroundColor: channel.active ? '#008060' : '#ccc',
+                                  transition: '.4s', borderRadius: '34px'
+                                }}>
+                                  <span style={{
+                                    position: 'absolute', content: '""', height: '16px', width: '16px',
+                                    left: channel.active ? '20px' : '4px', bottom: '4px',
+                                    backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
+                                  }} />
+                                </span>
+                              </label>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <Button variant="plain" disabled={!channel.active} onClick={() => setEditingChannelId(channel.id)}>Edit</Button>
+                              {channel.type === 'custom' && (
+                                <Button variant="plain" tone="critical" onClick={() => removeCustomLink(channel.id)}>Remove</Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
-                  <Box paddingBlockStart="400">
-                    <BlockStack gap="300">
-                      <InlineStack blockAlign="center" gap="300">
-                        <Box padding="200" background="bg-surface-secondary" borderRadius="100">
-                          <ChatIcon width="20" />
-                        </Box>
-                        <BlockStack>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">WhatsApp Number</Text>
-                          <Text as="p" variant="bodySm" tone="success">Configured</Text>
-                        </BlockStack>
+                      <Button variant="primary" onClick={addCustomLink} fullWidth>
+                        + Add New Channel
+                      </Button>
+                    </BlockStack>
+                  </Card>
+
+                  <Card>
+                    <BlockStack gap="400">
+                      <InlineStack align="space-between">
+                        <Text as="h2" variant="headingLg">Welcome</Text>
+                        <InlineStack gap="200">
+                          <Badge tone="success">Active</Badge>
+                          {/* <Badge tone="info">Free Plan</Badge> */}
+                        </InlineStack>
                       </InlineStack>
 
-                      <Divider />
+                      <Text as="p" variant="bodyMd" tone="subdued">
+                        Your WhatsApp button is live on your store.
+                      </Text>
 
-                      <InlineStack blockAlign="center" gap="300">
-                        <Box padding="200" background="bg-surface-secondary" borderRadius="100">
-                          <Text as="span">🎨</Text>
-                        </Box>
-                        <BlockStack>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">Appearance & Colors</Text>
-                          <Text as="p" variant="bodySm" tone="success">Configured</Text>
+                      <Box paddingBlockStart="400">
+                        <BlockStack gap="300">
+                          <InlineStack blockAlign="center" gap="300">
+                            <Box padding="200" background="bg-surface-secondary" borderRadius="100">
+                              <ChatIcon width="20" />
+                            </Box>
+                            <BlockStack>
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">WhatsApp Number</Text>
+                              <Text as="p" variant="bodySm" tone="success">Configured</Text>
+                            </BlockStack>
+                          </InlineStack>
+
+                          <Divider />
+
+                          <InlineStack blockAlign="center" gap="300">
+                            <Box padding="200" background="bg-surface-secondary" borderRadius="100">
+                              <Text as="span">🎨</Text>
+                            </Box>
+                            <BlockStack>
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">Appearance & Colors</Text>
+                              <Text as="p" variant="bodySm" tone="success">Configured</Text>
+                            </BlockStack>
+                          </InlineStack>
+
+                          <Divider />
+
+                          <InlineStack blockAlign="center" gap="300">
+                            <Box padding="200" background="bg-surface-secondary" borderRadius="100">
+                              <Text as="span">📱</Text>
+                            </Box>
+                            <BlockStack>
+                              <Text as="p" variant="bodyMd" fontWeight="semibold">Device Visibility</Text>
+                              <Text as="p" variant="bodySm" tone="success">Configured</Text>
+                            </BlockStack>
+                          </InlineStack>
                         </BlockStack>
-                      </InlineStack>
+                      </Box>
 
-                      <Divider />
-
-                      <InlineStack blockAlign="center" gap="300">
-                        <Box padding="200" background="bg-surface-secondary" borderRadius="100">
-                          <Text as="span">📱</Text>
-                        </Box>
-                        <BlockStack>
-                          <Text as="p" variant="bodyMd" fontWeight="semibold">Device Visibility</Text>
-                          <Text as="p" variant="bodySm" tone="success">Configured</Text>
-                        </BlockStack>
+                      <InlineStack gap="300">
+                        <Button variant="primary" onClick={() => navigate('/whatsapp')}>
+                          Configure Button
+                        </Button>
+                        {/* <Button>Upgrade Plan</Button> */}
                       </InlineStack>
                     </BlockStack>
-                  </Box>
+                  </Card>
 
-                  <InlineStack gap="300">
-                    <Button variant="primary" onClick={() => navigate('/whatsapp')}>
-                      Configure Button
-                    </Button>
-                    {/* <Button>Upgrade Plan</Button> */}
+                  <InlineStack gap="400" wrap={false}>
+                    <Card>
+                      <BlockStack gap="300">
+                        <Text as="h3" variant="headingMd">Quick Setup</Text>
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Add your WhatsApp number, customize appearance, and position your button — all in one place.
+                        </Text>
+                        <InlineStack>
+                          <Button variant="plain" onClick={() => navigate('/whatsapp')}>Configure now</Button>
+                        </InlineStack>
+                      </BlockStack>
+                    </Card>
+                    <Card>
+                      <BlockStack gap="300">
+                        <Text as="h3" variant="headingMd">Need Help?</Text>
+                        <Text as="p" variant="bodyMd" tone="subdued">
+                          Having trouble with setup or configuration? Our support team is ready to help.
+                        </Text>
+                        <InlineStack>
+                          <Button variant="plain" url="mailto:info@infinityplus1.in">Email support</Button>
+                        </InlineStack>
+                      </BlockStack>
+                    </Card>
                   </InlineStack>
+
+
                 </BlockStack>
-              </Card>
-
-              <InlineStack gap="400" wrap={false}>
-                <Card>
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">Quick Setup</Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Add your WhatsApp number, customize appearance, and position your button — all in one place.
-                    </Text>
-                    <InlineStack>
-                      <Button variant="plain" onClick={() => navigate('/whatsapp')}>Configure now</Button>
-                    </InlineStack>
-                  </BlockStack>
-                </Card>
-                <Card>
-                  <BlockStack gap="300">
-                    <Text as="h3" variant="headingMd">Need Help?</Text>
-                    <Text as="p" variant="bodyMd" tone="subdued">
-                      Having trouble with setup or configuration? Our support team is ready to help.
-                    </Text>
-                    <InlineStack>
-                      <Button variant="plain" url="mailto:info@infinityplus1.in">Email support</Button>
-                    </InlineStack>
-                  </BlockStack>
-                </Card>
-              </InlineStack>
-
-              {/* New Contact Channels UI */}
-              <Card>
-                <BlockStack gap="400">
-                  <Text as="h2" variant="headingMd">Contact Channels</Text>
-                  <Text as="p" tone="subdued">Manage the communication channels available in your widget. Drag to reorder.</Text>
-
-                  <div style={{ border: '1px solid var(--p-color-border)', borderRadius: '8px', overflow: 'hidden' }}>
-                    {channels.map((channel, index) => (
-                      <div key={channel.id} style={{
-                        display: 'flex', alignItems: 'center', padding: '16px',
-                        borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
-                        backgroundColor: 'white'
-                      }}>
-                        <div style={{ marginRight: '16px', fontSize: '24px', opacity: 0.8 }}>
-                          {channel.icon}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <Text as="p" fontWeight="bold">
-                            {channel.type === 'custom' && channel.customName ? `Custom Link (${channel.customName})` : channel.name}
-                          </Text>
-                          <Text as="p" tone="subdued">{channel.detail}</Text>
-                        </div>
-                        <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
-                          <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
-                            <input
-                              type="checkbox"
-                              checked={channel.active}
-                              onChange={(e) => {
-                                const newChannels = [...channels];
-                                newChannels[index].active = e.target.checked;
-                                setChannels(newChannels);
-                              }}
-                              style={{ opacity: 0, width: 0, height: 0 }}
-                            />
-                            <span style={{
-                              position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                              backgroundColor: channel.active ? '#008060' : '#ccc',
-                              transition: '.4s', borderRadius: '34px'
-                            }}>
-                              <span style={{
-                                position: 'absolute', content: '""', height: '16px', width: '16px',
-                                left: channel.active ? '20px' : '4px', bottom: '4px',
-                                backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
-                              }} />
-                            </span>
-                          </label>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <Button variant="plain" disabled={!channel.active} onClick={() => setEditingChannelId(channel.id)}>Edit</Button>
-                          {channel.type === 'custom' && (
-                            <Button variant="plain" tone="critical" onClick={() => removeCustomLink(channel.id)}>Remove</Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <Button variant="primary" onClick={addCustomLink} fullWidth>
-                    + Add New Channel
-                  </Button>
-                </BlockStack>
-              </Card>
-              </BlockStack>
               )}
 
               {selectedTabIndex === 1 && (
@@ -570,14 +609,51 @@ export default function Index() {
                   </BlockStack>
 
                   {/* Floating Button Preview */}
-                  <Box position="absolute" insetBlockEnd="400" insetInlineEnd="400">
-                    <div style={{ backgroundColor: '#25D366', padding: '12px 16px', borderRadius: '50px', color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}>
-                      <div style={{ width: '24px', height: '24px', fill: '#ffffff' }}>
-                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" /></svg>
+                  <div style={{
+                    position: 'absolute',
+                    [verticalPos]: `${bottomOffset}px`,
+                    [horizontalPos]: `${rightOffset}px`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    alignItems: horizontalPos === 'right' ? 'flex-end' : 'flex-start',
+                    zIndex: 10
+                  }}>
+                    {channels.filter(c => c.active).map((channel) => (
+                      <div key={channel.id} style={{
+                        backgroundColor: channel.appearance?.bgColor || '#000',
+                        color: channel.appearance?.textColor || '#fff',
+                        width: buttonSize === 'small' ? '40px' : buttonSize === 'large' ? '64px' : '52px',
+                        height: buttonSize === 'small' ? '40px' : buttonSize === 'large' ? '64px' : '52px',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        cursor: 'pointer',
+                        opacity: channel.appearance?.transparentBg ? 0.8 : 1,
+                        transition: 'transform 0.2s',
+                      }}>
+                        <div style={{
+                          width: `${channel.appearance?.iconWidth || 28}px`,
+                          height: `${channel.appearance?.iconHeight || 28}px`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fill: 'currentColor',
+                          color: 'currentColor'
+                        }}>
+                          {channel.icon?.startsWith('<svg') ? (
+                            <div dangerouslySetInnerHTML={{ __html: channel.icon }} style={{ width: '100%', height: '100%', display: 'flex' }} />
+                          ) : channel.icon?.startsWith('http') || channel.icon?.startsWith('data:image') ? (
+                            <img src={channel.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          ) : (
+                            <span style={{ fontSize: `${channel.appearance?.iconWidth || 28}px` }}>{channel.icon}</span>
+                          )}
+                        </div>
                       </div>
-                      <span style={{ fontSize: '14px', fontWeight: 600 }}>Chat with us</span>
-                    </div>
-                  </Box>
+                    ))}
+                  </div>
                 </Box>
 
                 <InlineStack align="center">
@@ -680,6 +756,16 @@ export default function Index() {
                 />
               )}
 
+              {editingChannel.type === 'x' && (
+                <TextField
+                  label="X (Twitter) Handle or Profile URL"
+                  value={editingChannel.detail}
+                  onChange={(v) => updateChannelField(editingChannel.id, 'detail', v)}
+                  autoComplete="off"
+                  helpText="Example: twitter.com/yourbrand or x.com/yourbrand"
+                />
+              )}
+
               {editingChannel.type === 'custom' && (
                 <>
                   <TextField
@@ -696,22 +782,54 @@ export default function Index() {
                     autoComplete="off"
                     helpText="Enter the full URL, e.g., https://example.com"
                   />
-                  <Select
-                    label="Icon"
-                    options={[
-                      { label: '🔗 Link', value: '🔗' },
-                      { label: '📞 Phone', value: '📞' },
-                      { label: '📧 Email', value: '📧' },
-                      { label: '📍 Location', value: '📍' },
-                      { label: '🛍️ Shop', value: '🛍️' },
-                      { label: '❓ Help', value: '❓' },
-                      { label: '💬 Chat', value: '💬' }
-                    ]}
-                    value={editingChannel.icon || '🔗'}
-                    onChange={(v) => updateChannelField(editingChannel.id, 'icon', v)}
-                  />
                 </>
               )}
+
+              <BlockStack gap="200">
+                <Text as="p" variant="bodyMd" fontWeight="semibold">Custom Icon (SVG or Image)</Text>
+                <DropZone
+                  accept="image/*, image/svg+xml"
+                  type="image"
+                  onDrop={(files) => {
+                    const file = files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        if (typeof reader.result === 'string') {
+                          updateChannel(editingChannel.id, { icon: reader.result, useDefaultIcon: false });
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                >
+                  <DropZone.FileUpload actionTitle="Add file" actionHint="Accepts SVG or images" />
+                </DropZone>
+                {editingChannel.icon && (editingChannel.icon.startsWith('data:') || editingChannel.icon.startsWith('<svg') || editingChannel.icon.startsWith('http')) && (
+                  <InlineStack align="start">
+                    <div style={{ width: '40px', height: '40px', border: '1px solid #ddd', borderRadius: '4px', overflow: 'hidden', padding: '4px' }}>
+                      {editingChannel.icon.startsWith('<svg') ? (
+                        <div dangerouslySetInnerHTML={{ __html: editingChannel.icon }} style={{ width: '100%', height: '100%', display: 'flex' }} />
+                      ) : (
+                        <img src={editingChannel.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      )}
+                    </div>
+                  </InlineStack>
+                )}
+                {editingChannel.type !== 'custom' && (
+                  <Checkbox
+                    label={`Use default ${editingChannel.name} icon`}
+                    checked={editingChannel.useDefaultIcon}
+                    onChange={(checked) => {
+                      if (checked) {
+                        updateChannel(editingChannel.id, { useDefaultIcon: true, icon: DEFAULT_ICONS[editingChannel.type as keyof typeof DEFAULT_ICONS] });
+                      } else {
+                        updateChannelField(editingChannel.id, 'useDefaultIcon', false);
+                      }
+                    }}
+                  />
+                )}
+              </BlockStack>
             </FormLayout>
           </Modal.Section>
         </Modal>
