@@ -32,6 +32,9 @@ import {
 import { ExternalIcon, ChatIcon } from "@shopify/polaris-icons";
 import { customArray } from "country-codes-list";
 import 'flag-icons/css/flag-icons.min.css';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const countryData = customArray({
   countryCode: "{countryCode}",
@@ -111,9 +114,93 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 };
 
+function SortableChannelItem({ channel, index, channels, setChannels, setEditingChannelId, removeCustomLink }: any) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: channel.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    display: 'flex', alignItems: 'center', padding: '16px',
+    borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
+    backgroundColor: 'white',
+    zIndex: isDragging ? 1 : 0,
+    position: 'relative' as any,
+    opacity: isDragging ? 0.8 : 1,
+    boxShadow: isDragging ? '0px 4px 12px rgba(0, 0, 0, 0.1)' : 'none',
+  };
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div {...attributes} {...listeners} style={{ cursor: 'grab', marginRight: '16px', display: 'flex', alignItems: 'center', opacity: 0.5 }}>
+        <svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-8a2 2 0 1 0-.001-4.001A2 2 0 0 0 13 6zm0 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/></svg>
+      </div>
+      <div style={{ marginRight: '16px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}>
+        {channel.icon?.startsWith('<svg') ? (
+          <div dangerouslySetInnerHTML={{ __html: channel.icon }} style={{ width: '100%', height: '100%', display: 'flex' }} />
+        ) : channel.icon?.startsWith('http') || channel.icon?.startsWith('data:image') ? (
+          <img src={channel.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        ) : (
+          <span style={{ fontSize: '24px' }}>{channel.icon}</span>
+        )}
+      </div>
+      <div style={{ flex: 1 }}>
+        <Text as="p" fontWeight="bold">
+          {channel.type === 'custom' && channel.customName ? `Custom Link (${channel.customName})` : channel.name}
+        </Text>
+        <Text as="p" tone="subdued">{channel.detail}</Text>
+      </div>
+      <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
+        <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
+          <input
+            type="checkbox"
+            checked={channel.active}
+            onChange={(e) => {
+              const newChannels = [...channels];
+              newChannels[index].active = e.target.checked;
+              setChannels(newChannels);
+            }}
+            style={{ opacity: 0, width: 0, height: 0 }}
+          />
+          <span style={{
+            position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: channel.active ? '#008060' : '#ccc',
+            transition: '.4s', borderRadius: '34px'
+          }}>
+            <span style={{
+              position: 'absolute', content: '""', height: '16px', width: '16px',
+              left: channel.active ? '20px' : '4px', bottom: '4px',
+              backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
+            }} />
+          </span>
+        </label>
+      </div>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <Button variant="plain" disabled={!channel.active} onClick={() => setEditingChannelId(channel.id)}>Edit</Button>
+        {channel.type === 'custom' && (
+          <Button variant="plain" tone="critical" onClick={() => removeCustomLink(channel.id)}>Remove</Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Index() {
   const { isAppEmbedEnabled, shop, apiKey } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const [channels, setChannels] = useState<any[]>([
     { id: 'whatsapp', name: 'WhatsApp', detail: '9812345678', selectedCountryIso: 'IN', prefilledMessage: 'Hello!', icon: DEFAULT_ICONS.whatsapp, useDefaultIcon: true, active: true, type: 'whatsapp', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#25D366", textColor: "#ffffff" } },
@@ -129,6 +216,17 @@ export default function Index() {
 
   const removeCustomLink = (id: string) => {
     setChannels(channels.filter(c => c.id !== id));
+  };
+
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      setChannels((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
   };
 
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
@@ -221,60 +319,21 @@ export default function Index() {
                       <Text as="p" tone="subdued">Manage the communication channels available in your widget. Drag to reorder.</Text>
 
                       <div style={{ border: '1px solid var(--p-color-border)', borderRadius: '8px', overflow: 'hidden' }}>
-                        {channels.map((channel, index) => (
-                          <div key={channel.id} style={{
-                            display: 'flex', alignItems: 'center', padding: '16px',
-                            borderBottom: index < channels.length - 1 ? '1px solid var(--p-color-border)' : 'none',
-                            backgroundColor: 'white'
-                          }}>
-                            <div style={{ marginRight: '16px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.8 }}>
-                              {channel.icon?.startsWith('<svg') ? (
-                                <div dangerouslySetInnerHTML={{ __html: channel.icon }} style={{ width: '100%', height: '100%', display: 'flex' }} />
-                              ) : channel.icon?.startsWith('http') || channel.icon?.startsWith('data:image') ? (
-                                <img src={channel.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                              ) : (
-                                <span style={{ fontSize: '24px' }}>{channel.icon}</span>
-                              )}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <Text as="p" fontWeight="bold">
-                                {channel.type === 'custom' && channel.customName ? `Custom Link (${channel.customName})` : channel.name}
-                              </Text>
-                              <Text as="p" tone="subdued">{channel.detail}</Text>
-                            </div>
-                            <div style={{ marginRight: '16px', alignSelf: 'center', display: 'flex', alignItems: 'center' }}>
-                              <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '24px' }}>
-                                <input
-                                  type="checkbox"
-                                  checked={channel.active}
-                                  onChange={(e) => {
-                                    const newChannels = [...channels];
-                                    newChannels[index].active = e.target.checked;
-                                    setChannels(newChannels);
-                                  }}
-                                  style={{ opacity: 0, width: 0, height: 0 }}
-                                />
-                                <span style={{
-                                  position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                                  backgroundColor: channel.active ? '#008060' : '#ccc',
-                                  transition: '.4s', borderRadius: '34px'
-                                }}>
-                                  <span style={{
-                                    position: 'absolute', content: '""', height: '16px', width: '16px',
-                                    left: channel.active ? '20px' : '4px', bottom: '4px',
-                                    backgroundColor: 'white', transition: '.4s', borderRadius: '50%'
-                                  }} />
-                                </span>
-                              </label>
-                            </div>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <Button variant="plain" disabled={!channel.active} onClick={() => setEditingChannelId(channel.id)}>Edit</Button>
-                              {channel.type === 'custom' && (
-                                <Button variant="plain" tone="critical" onClick={() => removeCustomLink(channel.id)}>Remove</Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                          <SortableContext items={channels} strategy={verticalListSortingStrategy}>
+                            {channels.map((channel, index) => (
+                              <SortableChannelItem 
+                                key={channel.id}
+                                channel={channel}
+                                index={index}
+                                channels={channels}
+                                setChannels={setChannels}
+                                setEditingChannelId={setEditingChannelId}
+                                removeCustomLink={removeCustomLink}
+                              />
+                            ))}
+                          </SortableContext>
+                        </DndContext>
                       </div>
 
                       <Button variant="primary" onClick={addCustomLink} fullWidth>
