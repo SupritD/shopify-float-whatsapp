@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useNavigate, useSubmit } from "react-router";
 import * as fs from "fs";
@@ -284,14 +284,14 @@ export default function Index() {
     { id: 'phone', name: 'Phone Call', detail: '+15551234567', icon: DEFAULT_ICONS.phone, useDefaultIcon: true, active: false, type: 'phone', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#34B7F1", textColor: "#ffffff" } },
     { id: 'email', name: 'Email Support', detail: 'support@yourbrand.com', icon: DEFAULT_ICONS.email, useDefaultIcon: true, active: false, type: 'email', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#EA4335", textColor: "#ffffff" } },
     { id: 'wechat', name: 'WeChat', detail: 'your_wechat_id', icon: DEFAULT_ICONS.wechat, useDefaultIcon: true, active: false, type: 'wechat', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#07C160", textColor: "#ffffff" } },
-    { id: 'custom1', name: 'Custom Link', customName: 'Help Center', detail: 'https://example.com/help', icon: 'ðŸ”—', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
+    { id: 'custom1', name: 'Custom Link', customName: 'Help Center', detail: 'https://example.com/help', icon: '🔗', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } },
   ];
 
   const parsedChannels = Array.isArray(config?.channels) && config.channels.length > 0 ? config.channels : defaultChannels;
   const [channels, setChannels] = useState<any[]>(parsedChannels);
 
   const addCustomLink = () => {
-    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', customName: 'New Link', detail: 'https://', icon: 'ðŸ”—', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } }]);
+    setChannels([...channels, { id: `custom${Date.now()}`, name: 'Custom Link', customName: 'New Link', detail: 'https://', icon: '🔗', useDefaultIcon: false, active: true, type: 'custom', appearance: { iconWidth: "28", iconHeight: "28", transparentBg: false, bgColor: "#000000", textColor: "#ffffff" } }]);
   };
 
   const removeCustomLink = (id: string) => {
@@ -481,7 +481,17 @@ export default function Index() {
                           value={appearance.bgColor}
                           onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'bgColor', v)}
                           autoComplete="off"
-                          prefix={<div style={{ width: 20, height: 20, backgroundColor: appearance.transparentBg ? 'transparent' : appearance.bgColor, borderRadius: '100%', border: '1px solid #ccc' }} />}
+                          prefix={
+                            <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #c9cccf', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }}>
+                              <input 
+                                type="color" 
+                                value={appearance.bgColor} 
+                                onChange={(e) => updateChannelAppearance(selectedAppearanceChannelId, 'bgColor', e.target.value)} 
+                                style={{ opacity: 0, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                              />
+                              <div style={{ width: '100%', height: '100%', backgroundColor: appearance.transparentBg ? 'transparent' : appearance.bgColor, pointerEvents: 'none' }} />
+                            </div>
+                          }
                         />
                       </Grid.Cell>
                       <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
@@ -490,7 +500,17 @@ export default function Index() {
                           value={appearance.textColor}
                           onChange={(v) => updateChannelAppearance(selectedAppearanceChannelId, 'textColor', v)}
                           autoComplete="off"
-                          prefix={<div style={{ width: 20, height: 20, backgroundColor: appearance.textColor, borderRadius: '100%', border: '1px solid #ccc' }} />}
+                          prefix={
+                            <div style={{ position: 'relative', width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', border: '1px solid #c9cccf', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)' }}>
+                              <input 
+                                type="color" 
+                                value={appearance.textColor} 
+                                onChange={(e) => updateChannelAppearance(selectedAppearanceChannelId, 'textColor', e.target.value)} 
+                                style={{ opacity: 0, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+                              />
+                              <div style={{ width: '100%', height: '100%', backgroundColor: appearance.textColor, pointerEvents: 'none' }} />
+                            </div>
+                          }
                         />
                       </Grid.Cell>
                     </Grid>
@@ -733,17 +753,17 @@ export default function Index() {
                       const isVisible = layoutStyle === 'stacked' || isPreviewExpanded;
                       return (
                       <div key={channel.id} style={{
-                        backgroundColor: channel.appearance?.bgColor || '#000',
-                        color: channel.appearance?.textColor || '#fff',
+                        backgroundColor: channel.appearance?.transparentBg ? 'transparent' : (channel.appearance?.bgColor || '#000'),
+                        color: channel.appearance?.transparentBg ? (channel.appearance?.bgColor || '#000') : (channel.appearance?.textColor || '#fff'),
                         width: buttonSize === 'small' ? '40px' : buttonSize === 'large' ? '64px' : '52px',
                         height: buttonSize === 'small' ? '40px' : buttonSize === 'large' ? '64px' : '52px',
                         borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        boxShadow: channel.appearance?.transparentBg ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
                         cursor: 'pointer',
-                        opacity: isVisible ? (channel.appearance?.transparentBg ? 0.8 : 1) : 0,
+                        opacity: isVisible ? 1 : 0,
                         pointerEvents: isVisible ? 'auto' : 'none',
                         transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.5)',
                         transition: `all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${layoutStyle === 'expandable' ? (arr.length - index) * 0.05 : 0}s`,
