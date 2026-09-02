@@ -28,3 +28,16 @@
     display: none !important;
   }
 }
+
+/* Ensure no global theme styles conflict with the drawer text */
+#contact-float-root * {
+  box-sizing: border-box;
+}
+
+#contact-float-root a {
+  text-decoration: none !important;
+}
+
+#contact-float-root a:hover {
+  text-decoration: none !important;
+}

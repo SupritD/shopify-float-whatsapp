@@ -5,7 +5,6 @@ document.addEventListener("DOMContentLoaded", async function() {
   const shopDomain = root.getAttribute("data-shop-domain");
 
   try {
-    // Fetch configuration from our App Proxy
     const response = await fetch(`/apps/contact-float?shop=${shopDomain}`);
     if (!response.ok) return;
 
@@ -30,9 +29,8 @@ document.addEventListener("DOMContentLoaded", async function() {
       }
     }
 
-    // Check visibility / display delay
     setTimeout(() => {
-      renderButton(config, root);
+      renderMultiChannelWidget(config, root);
     }, (parseFloat(config.displayDelay) || 0) * 1000);
 
   } catch (err) {
@@ -40,85 +38,278 @@ document.addEventListener("DOMContentLoaded", async function() {
   }
 });
 
-function renderButton(config, root) {
-  const btn = document.createElement("a");
-  
-  if (config.useCustomLink) {
-    btn.href = config.customUrl;
-  } else {
-    // Construct WhatsApp Link
-    const phone = config.phoneNumber.replace(/[^+\d]/g, '');
-    const text = encodeURIComponent(config.message);
-    btn.href = `https://wa.me/${phone}?text=${text}`;
+function renderMultiChannelWidget(config, root) {
+  const channels = config.channels ? config.channels.filter(c => c.active) : [];
+  if (channels.length === 0) return;
+
+  const layoutStyle = config.layoutStyle || 'stacked';
+  const buttonSize = config.buttonSize || 'medium';
+  const horizontalPos = config.horizontalPos || 'right';
+  const verticalPos = config.verticalPos || 'bottom';
+  const rightOffset = config.rightOffset || 20;
+  const bottomOffset = config.bottomOffset || 20;
+
+  // Create main container
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.zIndex = '2147483647';
+  container.style[verticalPos] = `${bottomOffset}px`;
+  container.style[horizontalPos] = `${rightOffset}px`;
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.gap = '12px';
+  container.style.alignItems = horizontalPos === 'right' ? 'flex-end' : 'flex-start';
+
+  // Device visibility class
+  if (config.visibility === 'desktop_only') container.classList.add('contact-float-desktop-only');
+  else if (config.visibility === 'mobile_only') container.classList.add('contact-float-mobile-only');
+
+  let isExpanded = false;
+
+  const getButtonDimensions = (size) => {
+    if (size === 'small') return '40px';
+    if (size === 'large') return '64px';
+    return '52px';
+  };
+  const sizePx = getButtonDimensions(buttonSize);
+
+  const createChannelLink = (channel) => {
+    let href = channel.detail;
+    if (channel.type === 'whatsapp') {
+      const phone = channel.detail.replace(/[^+\d]/g, '');
+      const text = encodeURIComponent(channel.prefilledMessage || '');
+      href = `https://wa.me/${phone}?text=${text}`;
+    } else if (channel.type === 'messenger') {
+      href = `https://${channel.detail}`;
+    } else if (channel.type === 'instagram') {
+      href = `https://instagram.com/${channel.detail}`;
+    } else if (channel.type === 'phone') {
+      href = `tel:${channel.detail.replace(/[^+\d]/g, '')}`;
+    } else if (channel.type === 'email') {
+      href = `mailto:${channel.detail}`;
+    } else if (channel.type === 'x') {
+      href = `https://${channel.detail}`;
+    } else if (channel.type === 'youtube') {
+      href = `https://${channel.detail}`;
+    }
+
+    const a = document.createElement('a');
+    a.href = href;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.style.textDecoration = 'none';
+    return a;
+  };
+
+  const createIconEl = (channel) => {
+    const iconContainer = document.createElement('div');
+    const iWidth = channel.appearance?.iconWidth || 28;
+    const iHeight = channel.appearance?.iconHeight || 28;
+    iconContainer.style.width = `${iWidth}px`;
+    iconContainer.style.height = `${iHeight}px`;
+    iconContainer.style.display = 'flex';
+    iconContainer.style.alignItems = 'center';
+    iconContainer.style.justifyContent = 'center';
+
+    if (channel.icon && channel.icon.startsWith('<svg')) {
+      iconContainer.innerHTML = channel.icon;
+      const svg = iconContainer.querySelector('svg');
+      if (svg) {
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+      }
+    } else if (channel.icon && (channel.icon.startsWith('http') || channel.icon.startsWith('data:image'))) {
+      iconContainer.innerHTML = `<img src="${channel.icon}" style="width: 100%; height: 100%; object-fit: contain;" />`;
+    } else {
+      iconContainer.innerHTML = `<span style="font-size: ${iWidth}px;">${channel.icon}</span>`;
+    }
+    return iconContainer;
+  };
+
+  // 1. DRAWER LAYOUT
+  if (layoutStyle === 'drawer') {
+    const drawerCard = document.createElement('div');
+    drawerCard.style.backgroundColor = '#ffffff';
+    drawerCard.style.borderRadius = '12px';
+    drawerCard.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+    drawerCard.style.padding = '8px 0';
+    drawerCard.style.minWidth = '220px';
+    drawerCard.style.marginBottom = '4px';
+    drawerCard.style.display = 'flex';
+    drawerCard.style.flexDirection = 'column';
+    drawerCard.style.overflow = 'hidden';
+    drawerCard.style.opacity = '0';
+    drawerCard.style.transform = 'translateY(20px) scale(0.95)';
+    drawerCard.style.pointerEvents = 'none';
+    drawerCard.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    drawerCard.style.transformOrigin = horizontalPos === 'right' ? 'bottom right' : 'bottom left';
+    
+    channels.forEach(channel => {
+      const a = createChannelLink(channel);
+      a.style.display = 'flex';
+      a.style.alignItems = 'center';
+      a.style.gap = '12px';
+      a.style.padding = '10px 16px';
+      a.style.cursor = 'pointer';
+      a.style.transition = 'background-color 0.2s';
+      a.onmouseenter = () => a.style.backgroundColor = '#f9f9f9';
+      a.onmouseleave = () => a.style.backgroundColor = 'transparent';
+
+      const iconWrap = document.createElement('div');
+      iconWrap.style.width = '24px';
+      iconWrap.style.height = '24px';
+      iconWrap.style.display = 'flex';
+      iconWrap.style.alignItems = 'center';
+      iconWrap.style.justifyContent = 'center';
+      iconWrap.style.color = channel.appearance?.bgColor || '#000';
+      iconWrap.style.fill = channel.appearance?.bgColor || '#000';
+      iconWrap.appendChild(createIconEl(channel));
+
+      const span = document.createElement('span');
+      span.style.fontSize = '14px';
+      span.style.fontWeight = '500';
+      span.style.color = '#333';
+      span.innerText = (channel.type === 'custom' && channel.customName) ? channel.customName : channel.name;
+
+      a.appendChild(iconWrap);
+      a.appendChild(span);
+      drawerCard.appendChild(a);
+    });
+    
+    container.appendChild(drawerCard);
+
+    // Trigger button
+    const trigger = document.createElement('div');
+    trigger.style.backgroundColor = '#000';
+    trigger.style.color = '#fff';
+    trigger.style.width = sizePx;
+    trigger.style.height = sizePx;
+    trigger.style.borderRadius = '50%';
+    trigger.style.display = 'flex';
+    trigger.style.alignItems = 'center';
+    trigger.style.justifyContent = 'center';
+    trigger.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+    trigger.style.cursor = 'pointer';
+    trigger.style.transition = 'transform 0.3s ease';
+    
+    if (config.animation === 'pulse') trigger.classList.add('contact-float-pulse');
+    if (config.animation === 'bounce') trigger.classList.add('contact-float-bounce');
+
+    const toggleIcon = document.createElement('div');
+    toggleIcon.style.width = buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px';
+    toggleIcon.style.height = buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px';
+    toggleIcon.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg"><path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    
+    trigger.appendChild(toggleIcon);
+    container.appendChild(trigger);
+
+    trigger.onclick = () => {
+      isExpanded = !isExpanded;
+      if (isExpanded) {
+        drawerCard.style.opacity = '1';
+        drawerCard.style.transform = 'translateY(0) scale(1)';
+        drawerCard.style.pointerEvents = 'auto';
+        trigger.style.transform = 'rotate(135deg)';
+      } else {
+        drawerCard.style.opacity = '0';
+        drawerCard.style.transform = 'translateY(20px) scale(0.95)';
+        drawerCard.style.pointerEvents = 'none';
+        trigger.style.transform = 'rotate(0deg)';
+      }
+    };
   }
+
+  // 2. STACKED OR EXPANDABLE LAYOUT
+  if (layoutStyle === 'stacked' || layoutStyle === 'expandable') {
+    const channelContainer = document.createElement('div');
+    channelContainer.style.display = 'flex';
+    channelContainer.style.flexDirection = 'column';
+    channelContainer.style.gap = '12px';
+
+    const channelNodes = [];
+
+    channels.forEach((channel, index) => {
+      const a = createChannelLink(channel);
+      a.style.backgroundColor = channel.appearance?.transparentBg ? 'transparent' : (channel.appearance?.bgColor || '#000');
+      a.style.color = channel.appearance?.transparentBg ? (channel.appearance?.bgColor || '#000') : (channel.appearance?.textColor || '#fff');
+      a.style.fill = a.style.color;
+      a.style.width = sizePx;
+      a.style.height = sizePx;
+      a.style.borderRadius = '50%';
+      a.style.display = 'flex';
+      a.style.alignItems = 'center';
+      a.style.justifyContent = 'center';
+      a.style.boxShadow = channel.appearance?.transparentBg ? 'none' : '0 4px 12px rgba(0,0,0,0.15)';
+      
+      if (layoutStyle === 'stacked') {
+        a.style.opacity = '1';
+        a.style.transform = 'translateY(0) scale(1)';
+        a.style.pointerEvents = 'auto';
+        if (config.animation === 'pulse') a.classList.add('contact-float-pulse');
+        if (config.animation === 'bounce') a.classList.add('contact-float-bounce');
+      } else {
+        a.style.opacity = '0';
+        a.style.transform = 'translateY(20px) scale(0.5)';
+        a.style.pointerEvents = 'none';
+        a.style.transition = `all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) ${(channels.length - index) * 0.05}s`;
+      }
+      
+      const iconEl = createIconEl(channel);
+      iconEl.style.fill = 'currentColor';
+      iconEl.style.color = 'currentColor';
+      a.appendChild(iconEl);
+      
+      channelContainer.appendChild(a);
+      channelNodes.push(a);
+    });
+
+    container.appendChild(channelContainer);
+
+    if (layoutStyle === 'expandable') {
+      const trigger = document.createElement('div');
+      trigger.style.backgroundColor = '#000';
+      trigger.style.color = '#fff';
+      trigger.style.width = sizePx;
+      trigger.style.height = sizePx;
+      trigger.style.borderRadius = '50%';
+      trigger.style.display = 'flex';
+      trigger.style.alignItems = 'center';
+      trigger.style.justifyContent = 'center';
+      trigger.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+      trigger.style.cursor = 'pointer';
+      trigger.style.transition = 'transform 0.3s ease';
+      
+      if (config.animation === 'pulse') trigger.classList.add('contact-float-pulse');
+      if (config.animation === 'bounce') trigger.classList.add('contact-float-bounce');
   
-  btn.target = "_blank";
-  btn.rel = "noopener noreferrer";
-  
-  // Base Styling
-  btn.style.position = "fixed";
-  btn.style.zIndex = "2147483647"; // Max z-index
-  btn.style.display = "flex";
-  btn.style.alignItems = "center";
-  btn.style.gap = "8px";
-  btn.style.textDecoration = "none";
-  btn.style.transition = "all 0.3s ease";
-  
-  // Position
-  btn.style[config.horizontalPos === 'right' ? 'right' : 'left'] = `${config.rightOffset}px`;
-  btn.style[config.verticalPos === 'bottom' ? 'bottom' : 'top'] = `${config.bottomOffset}px`;
-  
-  // Colors & BG
-  if (!config.transparentBg) {
-    btn.style.backgroundColor = config.bgColor;
-    btn.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
-  } else {
-    btn.style.backgroundColor = "transparent";
+      const toggleIcon = document.createElement('div');
+      toggleIcon.style.width = buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px';
+      toggleIcon.style.height = buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px';
+      toggleIcon.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg"><path d="M12 4V20M4 12H20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      
+      trigger.appendChild(toggleIcon);
+      container.appendChild(trigger);
+
+      trigger.onclick = () => {
+        isExpanded = !isExpanded;
+        if (isExpanded) {
+          trigger.style.transform = 'rotate(135deg)';
+          channelNodes.forEach(node => {
+            node.style.opacity = '1';
+            node.style.transform = 'translateY(0) scale(1)';
+            node.style.pointerEvents = 'auto';
+          });
+        } else {
+          trigger.style.transform = 'rotate(0deg)';
+          channelNodes.forEach(node => {
+            node.style.opacity = '0';
+            node.style.transform = 'translateY(20px) scale(0.5)';
+            node.style.pointerEvents = 'none';
+          });
+        }
+      };
+    }
   }
-  
-  // Button Size scaling
-  let scale = 1;
-  if (config.buttonSize === 'small') scale = 0.8;
-  if (config.buttonSize === 'large') scale = 1.2;
 
-  const basePaddingV = 12 * scale;
-  const basePaddingH = (config.displayStyle === 'icon_text' ? 16 : 12) * scale;
-  btn.style.padding = `${basePaddingV}px ${basePaddingH}px`;
-  btn.style.borderRadius = "50px";
-  btn.style.color = config.textColor;
-
-  // Animation class
-  if (config.animation === 'pulse') {
-    btn.classList.add('contact-float-pulse');
-  } else if (config.animation === 'bounce') {
-    btn.classList.add('contact-float-bounce');
-  }
-
-  // Visibility class
-  if (config.visibility === 'desktop_only') {
-    btn.classList.add('contact-float-desktop-only');
-  } else if (config.visibility === 'mobile_only') {
-    btn.classList.add('contact-float-mobile-only');
-  }
-
-  const finalIconWidth = (parseFloat(config.iconWidth) || 28) * scale;
-  const finalIconHeight = (parseFloat(config.iconHeight) || 28) * scale;
-
-  // Icon HTML
-  const iconHtml = `
-    <div style="width: ${finalIconWidth}px; height: ${finalIconHeight}px; fill: ${config.textColor}; display: flex; align-items: center; justify-content: center;">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg" fill="currentColor">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.888-.788-1.487-1.761-1.663-2.06-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.885m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-      </svg>
-    </div>
-  `;
-
-  let contentHtml = iconHtml;
-  
-  if (config.displayStyle === 'icon_text') {
-    contentHtml += `<span style="font-size: 14px; font-weight: 600; font-family: inherit;">${config.buttonText}</span>`;
-  }
-
-  btn.innerHTML = contentHtml;
-  root.appendChild(btn);
+  root.appendChild(container);
 }
