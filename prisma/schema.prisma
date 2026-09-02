@@ -43,6 +43,9 @@ model WidgetConfig {
   rightOffset       Int      @default(20)
   bottomOffset      Int      @default(20)
   visibility        String   @default("always")
+  displayDelay      String   @default("0")
+  pageVisibilityRule String  @default("all")
+  targetPages       String   @db.LongText @default("[]")
   channels          String   @db.LongText @default("[]") 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt

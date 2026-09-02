@@ -127,9 +127,13 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 
   let parsedChannels = [];
+  let parsedTargetPages = [];
   try {
     parsedChannels = JSON.parse(config.channels);
-  } catch(e) {}
+  } catch(e) { console.error("Error parsing channels:", e); }
+  try {
+    parsedTargetPages = JSON.parse(config.targetPages || "[]");
+  } catch(e) { console.error("Error parsing targetPages:", e); }
 
   return {
     isAppEmbedEnabled,
@@ -137,7 +141,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     apiKey: process.env.SHOPIFY_API_KEY || "",
     config: {
       ...config,
-      channels: parsedChannels
+      channels: parsedChannels,
+      targetPages: parsedTargetPages
     }
   };
 };
@@ -160,6 +165,9 @@ export const action = async ({ request }: any) => {
         rightOffset: parseInt(payload.rightOffset, 10),
         bottomOffset: parseInt(payload.bottomOffset, 10),
         visibility: payload.visibility,
+        displayDelay: payload.displayDelay,
+        pageVisibilityRule: payload.pageVisibilityRule,
+        targetPages: JSON.stringify(payload.targetPages),
         channels: JSON.stringify(payload.channels),
       }
     });
@@ -262,6 +270,9 @@ export default function Index() {
       rightOffset,
       bottomOffset,
       visibility,
+      displayDelay,
+      pageVisibilityRule,
+      targetPages,
     });
     const formData = new FormData();
     formData.append("payload", payload);
@@ -353,9 +364,9 @@ export default function Index() {
   const [bottomOffset, setBottomOffset] = useState(config?.bottomOffset ?? 20);
 
   const [visibility, setVisibility] = useState(config?.visibility || "always");
-  const [displayDelay, setDisplayDelay] = useState("0");
-  const [pageVisibilityRule, setPageVisibilityRule] = useState("all");
-  const [targetPages, setTargetPages] = useState<string[]>([]);
+  const [displayDelay, setDisplayDelay] = useState(config?.displayDelay || "0");
+  const [pageVisibilityRule, setPageVisibilityRule] = useState(config?.pageVisibilityRule || "all");
+  const [targetPages, setTargetPages] = useState<string[]>(config?.targetPages || []);
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(true);
 
   return (
@@ -564,7 +575,7 @@ export default function Index() {
 
                     <RangeSlider
                       label="Right/Left Offset (px)"
-                      value={rightOffset as number}
+                      value={rightOffset}
                       onChange={(v) => setRightOffset(v as number)}
                       output
                       min={0}
@@ -574,7 +585,7 @@ export default function Index() {
 
                     <RangeSlider
                       label="Bottom/Top Offset (px)"
-                      value={bottomOffset as number}
+                      value={bottomOffset}
                       onChange={(v) => setBottomOffset(v as number)}
                       output
                       min={0}
@@ -811,16 +822,12 @@ export default function Index() {
                           height: buttonSize === 'small' ? '24px' : buttonSize === 'large' ? '40px' : '32px', 
                           fill: 'none' 
                         }}>
-                          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/24/svg"><path d="M12 4V20M4 12H20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4V20M4 12H20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </div>
                       </div>
                     )}
                   </div>
                 </Box>
-
-                <InlineStack align="center">
-                  <Button variant="plain" onClick={() => navigate('/whatsapp')}>Customize this button</Button>
-                </InlineStack>
               </BlockStack>
             </Card>
           </Layout.Section>

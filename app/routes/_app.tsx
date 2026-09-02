@@ -23,8 +23,9 @@ export default function App() {
       <PolarisAppProvider i18n={enTranslations}>
         {/* @ts-ignore */}
         <s-app-nav>
+
           {/* @ts-ignore */}
-          <s-link href="/whatsapp">WhatsApp Button</s-link>
+          <s-link href="/settings">Settings</s-link>
           {/* @ts-ignore */}
           <s-link href="/documentation">Documentation</s-link>
         {/* @ts-ignore */}
